@@ -5,15 +5,24 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import subprocess
 import os
+import sys
 
 app = FastAPI()
 
 API_TOKEN = os.environ.get("API_TOKEN", "")
 MAX_PROMPT_LENGTH = 4000
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "")
+
+if not API_TOKEN:
+    print(
+        "WARNING: API_TOKEN is not set. The /prompt endpoint is unauthenticated!\n"
+        "Set API_TOKEN environment variable to enable authentication.",
+        file=sys.stderr,
+    )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[ALLOWED_ORIGIN] if ALLOWED_ORIGIN else [],
     allow_methods=["POST"],
     allow_headers=["Authorization", "Content-Type"],
 )

@@ -24,9 +24,12 @@ claude login
 
 ## 2. Start
 ```bash
-export API_TOKEN="your-secure-token"
-uvicorn server:app --host 0.0.0.0 --port 8000
+export API_TOKEN="your-secure-token"          # required!
+export ALLOWED_ORIGIN="https://your-server.example.com"
+uvicorn server:app --host 127.0.0.1 --port 8000
 ```
+
+> **Warning:** Never run without `API_TOKEN` on a public server. The server logs a warning if no token is set.
 
 ## 3. HTTPS (required for Web Speech API)
 Using Caddy (simplest option):
@@ -51,6 +54,7 @@ After=network.target
 [Service]
 WorkingDirectory=/opt/voiceclaude
 Environment="API_TOKEN=your-secure-token"
+Environment="ALLOWED_ORIGIN=https://your-server.example.com"
 ExecStart=uvicorn server:app --host 127.0.0.1 --port 8000
 Restart=always
 

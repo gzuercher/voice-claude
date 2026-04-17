@@ -52,8 +52,8 @@ Open `http://localhost:8000` in Chrome. Web Speech API works on localhost withou
 HTTPS is required for the Web Speech API on Android.
 
 ```bash
-# 1. Start server
-API_TOKEN=your-secret-token uvicorn server:app --host 127.0.0.1 --port 8000
+# 1. Start server (API_TOKEN is required for production!)
+API_TOKEN=your-secret-token ALLOWED_ORIGIN=https://voice.example.com uvicorn server:app --host 127.0.0.1 --port 8000
 
 # 2. Caddy as reverse proxy (automatic HTTPS)
 # Caddyfile:
@@ -68,9 +68,12 @@ On Pixel: Chrome → `https://voice.example.com` → three-dot menu → "Add to 
 
 | Variable | Description | Default |
 |---|---|---|
-| `API_TOKEN` | Bearer token for `/prompt` endpoint | empty (no auth) |
+| `API_TOKEN` | Bearer token for `/prompt` endpoint (**required for production**) | empty (warning at startup) |
+| `ALLOWED_ORIGIN` | Allowed CORS origin (e.g. `https://voice.example.com`) | empty (no cross-origin) |
 
 Server URL and token can also be configured in the app under Settings (⚙).
+
+> **Security note:** Without `API_TOKEN`, the server starts in unauthenticated mode and logs a warning. Never expose an unauthenticated server to the internet.
 
 ## API
 
