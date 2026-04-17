@@ -18,3 +18,6 @@ format:
 	.venv/bin/ruff check --fix .
 
 check: lint test
+
+docker:
+	docker compose up -d --build

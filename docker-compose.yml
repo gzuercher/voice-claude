@@ -1,0 +1,37 @@
+services:
+  claude:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - INSTANCE_NAME=Claude
+      - INSTANCE_COLOR=#c8ff00
+      - TARGET_URL=http://host.docker.internal:9000/prompt
+      - TARGET_TOKEN=
+      - API_TOKEN=${API_TOKEN_CLAUDE:-}
+      - SPEECH_LANG=de-CH
+    restart: unless-stopped
+
+  dokbot:
+    build: .
+    ports:
+      - "8002:8000"
+    environment:
+      - INSTANCE_NAME=Dokbot
+      - INSTANCE_COLOR=#00b4d8
+      - TARGET_URL=http://host.docker.internal:9001/prompt
+      - TARGET_TOKEN=
+      - API_TOKEN=${API_TOKEN_DOKBOT:-}
+      - SPEECH_LANG=de-CH
+    restart: unless-stopped
+
+  # Add more instances as needed:
+  # notes:
+  #   build: .
+  #   ports:
+  #     - "8003:8000"
+  #   environment:
+  #     - INSTANCE_NAME=Notizen
+  #     - INSTANCE_COLOR=#ff6b6b
+  #     - TARGET_URL=http://host.docker.internal:9002/notes
+  #     - API_TOKEN=${API_TOKEN_NOTES:-}

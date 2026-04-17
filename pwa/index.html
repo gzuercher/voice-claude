@@ -67,8 +67,9 @@
     }
     .status-dot.online { background: var(--accent); }
     .status-dot.error { background: var(--red); }
+    .status-dot.sending { background: var(--accent); animation: pulse 1.2s ease infinite; }
 
-    .messages {
+    main {
       flex: 1;
       overflow-y: auto;
       padding: 20px;
@@ -126,11 +127,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 12px;
       color: var(--muted);
       font-family: var(--font-mono);
       font-size: 12px;
       letter-spacing: 0.05em;
+    }
+
+    .empty-hint {
+      font-size: 11px;
+      opacity: 0.6;
     }
 
     footer {
@@ -158,22 +164,16 @@
       color: var(--text);
     }
 
-    .controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
     .mic-btn {
-      flex: 1;
-      height: 56px;
+      width: 100%;
+      height: 64px;
       border: none;
       border-radius: 4px;
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 13px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       cursor: pointer;
@@ -193,94 +193,12 @@
     }
     .mic-btn.recording .mic-icon { animation: pulse 1.2s ease infinite; }
 
-    .send-btn {
-      width: 56px;
-      height: 56px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: var(--surface);
-      color: var(--muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .send-btn.ready {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: var(--bg);
-    }
-    .send-btn:active { transform: scale(0.97); }
-
     .mic-icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    /* Settings panel */
-    .settings-btn {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      padding: 4px;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .settings-panel {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 100;
-      align-items: flex-end;
-    }
-    .settings-panel.open { display: flex; }
-    .settings-inner {
-      width: 100%;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 24px 20px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .settings-title {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .settings-inner input {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 12px 14px;
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 13px;
-    }
-    .settings-inner input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    .settings-save {
-      height: 48px;
-      background: var(--accent);
-      border: none;
-      border-radius: 4px;
-      color: var(--bg);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      cursor: pointer;
     }
 
     :focus-visible {
@@ -317,85 +235,68 @@
 <body>
 
 <header>
-  <span class="logo">VoiceClaude</span>
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="status-dot" id="statusDot"></div>
-    <button class="settings-btn" onclick="openSettings()" aria-label="Einstellungen">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-      </svg>
-    </button>
-  </div>
+  <span class="logo" id="logo">VoiceClaude</span>
+  <div class="status-dot" id="statusDot"></div>
 </header>
 
-<main class="messages" id="messages">
+<main id="messages">
   <div class="empty-state" id="emptyState">
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4">
       <rect x="9" y="2" width="6" height="13" rx="3"/>
       <path d="M5 10 C5 16 19 16 19 10"/><line x1="12" y1="16" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/>
     </svg>
-    <span>Mikrofon drücken und sprechen</span>
+    <span>Tippen und sprechen</span>
+    <span class="empty-hint">Nochmal tippen = senden</span>
   </div>
 </main>
 
 <footer>
-  <div class="transcript-box" id="transcriptBox">Bereit...</div>
-  <div class="controls">
-    <button class="mic-btn" id="micBtn" onclick="toggleRecording()">
-      <span class="mic-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="9" y="2" width="6" height="13" rx="3"/>
-          <path d="M5 10 C5 16 19 16 19 10"/><line x1="12" y1="16" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/>
-        </svg>
-      </span>
-      <span id="micLabel">Aufnehmen</span>
-    </button>
-    <button class="send-btn" id="sendBtn" onclick="sendTranscript()" disabled>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  <div class="transcript-box" id="transcriptBox" aria-live="polite">Bereit...</div>
+  <button class="mic-btn" id="micBtn" onclick="handleTap()" aria-label="Record and send">
+    <span class="mic-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="9" y="2" width="6" height="13" rx="3"/>
+        <path d="M5 10 C5 16 19 16 19 10"/><line x1="12" y1="16" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/>
       </svg>
-    </button>
-  </div>
+    </span>
+    <span id="micLabel">Aufnehmen</span>
+  </button>
 </footer>
 
-<!-- Settings Panel -->
-<div class="settings-panel" id="settingsPanel" onclick="closeSettingsOutside(event)">
-  <div class="settings-inner">
-    <span class="settings-title">Einstellungen</span>
-    <label class="sr-only" for="serverUrl">Server URL</label>
-    <input type="url" id="serverUrl" placeholder="https://your-server.com/prompt" autocomplete="off" spellcheck="false">
-    <label class="sr-only" for="apiToken">API Token</label>
-    <input type="password" id="apiToken" placeholder="API Token (optional)" autocomplete="off">
-    <button class="settings-save" onclick="saveSettings()">Speichern</button>
-  </div>
-</div>
-
 <script>
-  // --- Config ---
-  let config = {
-    serverUrl: localStorage.getItem('serverUrl') || '/prompt',
-    apiToken: localStorage.getItem('apiToken') || ''
-  };
-
-  // --- State ---
+  let instanceConfig = { name: 'VoiceClaude', color: '#c8ff00', lang: 'de-CH', maxLength: 4000 };
   let recognition = null;
   let isRecording = false;
   let currentTranscript = '';
   let finalTranscript = '';
 
-  // --- PWA ---
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
   }
 
-  // --- UI ---
   const micBtn = document.getElementById('micBtn');
   const micLabel = document.getElementById('micLabel');
-  const sendBtn = document.getElementById('sendBtn');
   const transcriptBox = document.getElementById('transcriptBox');
   const messagesEl = document.getElementById('messages');
-  const emptyState = document.getElementById('emptyState');
   const statusDot = document.getElementById('statusDot');
+  const logo = document.getElementById('logo');
+
+  async function loadConfig() {
+    try {
+      const res = await fetch('/config');
+      if (res.ok) {
+        instanceConfig = await res.json();
+        document.title = instanceConfig.name;
+        logo.textContent = instanceConfig.name;
+        document.documentElement.style.setProperty('--accent', instanceConfig.color);
+        const dimColor = instanceConfig.color + '1f';
+        document.documentElement.style.setProperty('--accent-dim', dimColor);
+        document.querySelector('meta[name="theme-color"]').content = '#0a0a0a';
+      }
+    } catch (e) {
+      // use defaults
+    }
+  }
 
   function setStatus(state) {
     statusDot.className = 'status-dot ' + state;
@@ -404,8 +305,6 @@
   function updateTranscript(text, active) {
     transcriptBox.textContent = text || 'Bereit...';
     transcriptBox.className = 'transcript-box' + (active ? ' active' : '');
-    sendBtn.disabled = !text;
-    sendBtn.className = 'send-btn' + (text ? ' ready' : '');
   }
 
   function addMessage(role, text) {
@@ -414,8 +313,9 @@
 
     const div = document.createElement('div');
     div.className = 'message ' + role;
+    const label = role === 'user' ? 'Du' : instanceConfig.name;
     div.innerHTML = `
-      <div class="message-label">${role === 'user' ? 'Du' : 'Claude'}</div>
+      <div class="message-label">${escapeHtml(label)}</div>
       <div class="message-bubble">${escapeHtml(text)}</div>
     `;
     messagesEl.appendChild(div);
@@ -427,10 +327,9 @@
     return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // --- Speech Recognition ---
-  function toggleRecording() {
+  function handleTap() {
     if (isRecording) {
-      stopRecording();
+      stopAndSend();
     } else {
       startRecording();
     }
@@ -438,22 +337,23 @@
 
   function startRecording() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Web Speech API wird in diesem Browser nicht unterstützt. Chrome verwenden.');
+      alert('Web Speech API not supported. Use Chrome.');
       return;
     }
 
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SR();
-    recognition.lang = 'de-CH';
+    recognition.lang = instanceConfig.lang;
     recognition.continuous = true;
     recognition.interimResults = true;
 
     finalTranscript = '';
+    currentTranscript = '';
 
     recognition.onstart = () => {
       isRecording = true;
       micBtn.classList.add('recording');
-      micLabel.textContent = 'Aufnahme läuft';
+      micLabel.textContent = 'Senden';
       updateTranscript('', true);
       setStatus('online');
     };
@@ -474,7 +374,6 @@
 
     recognition.onend = () => {
       if (isRecording) {
-        // Neustart bei automatischem Stop (Android beendet nach Stille)
         recognition.start();
       }
     };
@@ -497,40 +396,32 @@
     }
     micBtn.classList.remove('recording');
     micLabel.textContent = 'Aufnehmen';
-    if (currentTranscript) {
-      updateTranscript(currentTranscript, false);
-    } else {
-      updateTranscript('', false);
-    }
-    setStatus('');
   }
 
-  // --- Send ---
-  async function sendTranscript() {
+  async function stopAndSend() {
     const text = currentTranscript.trim();
-    if (!text) return;
+    stopRecording();
 
-    if (!config.serverUrl) {
-      openSettings();
+    if (!text) {
+      updateTranscript('', false);
       return;
     }
 
-    stopRecording();
     addMessage('user', text);
     currentTranscript = '';
     finalTranscript = '';
     updateTranscript('', false);
 
-    // Typing indicator
     const typingDiv = addMessage('assistant', '');
     typingDiv.classList.add('typing');
-    setStatus('online');
+    setStatus('sending');
 
     try {
       const headers = { 'Content-Type': 'application/json' };
-      if (config.apiToken) headers['Authorization'] = 'Bearer ' + config.apiToken;
+      const token = localStorage.getItem('apiToken');
+      if (token) headers['Authorization'] = 'Bearer ' + token;
 
-      const res = await fetch(config.serverUrl, {
+      const res = await fetch('/prompt', {
         method: 'POST',
         headers,
         body: JSON.stringify({ text })
@@ -552,28 +443,7 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  // --- Settings ---
-  function openSettings() {
-    document.getElementById('serverUrl').value = config.serverUrl;
-    document.getElementById('apiToken').value = config.apiToken;
-    document.getElementById('settingsPanel').classList.add('open');
-  }
-
-  function closeSettingsOutside(e) {
-    if (e.target === document.getElementById('settingsPanel')) {
-      document.getElementById('settingsPanel').classList.remove('open');
-    }
-  }
-
-  function saveSettings() {
-    config.serverUrl = document.getElementById('serverUrl').value.trim();
-    config.apiToken = document.getElementById('apiToken').value.trim();
-    localStorage.setItem('serverUrl', config.serverUrl);
-    localStorage.setItem('apiToken', config.apiToken);
-    document.getElementById('settingsPanel').classList.remove('open');
-  }
-
-  // Initial status
+  loadConfig();
   setStatus('');
 </script>
 </body>

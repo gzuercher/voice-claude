@@ -1,6 +1,7 @@
 # VoiceClaude – Claude Code Playbook
 
-Voice-controlled PWA that sends speech input to a FastAPI server, which invokes the Claude Code CLI.
+Voice gateway PWA – each instance forwards speech input via HTTP to a configurable backend.
+No Claude CLI in the container; the server is a pure forwarding proxy.
 
 ## Grundhaltung
 
@@ -18,18 +19,17 @@ Voice-controlled PWA that sends speech input to a FastAPI server, which invokes 
 
 ## Tech Stack
 
-- **Backend:** Python 3.10+, FastAPI, Uvicorn
+- **Backend:** Python 3.10+, FastAPI, Uvicorn, httpx
 - **Frontend:** Vanilla HTML/CSS/JS, Web Speech API, PWA
-- **CLI:** Claude Code (`claude -p`)
+- **Container:** Docker, docker-compose
 - **Reverse Proxy:** Caddy (production)
 
 ## Build & Run
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn
-uvicorn server:app --host 0.0.0.0 --port 8000
+docker compose up -d            # Docker
+# or
+make setup && make run          # local
 ```
 
 ## Fehler-Lernen

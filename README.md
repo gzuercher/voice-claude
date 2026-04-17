@@ -1,96 +1,138 @@
 # VoiceClaude
 
-Voice-controlled interface for Claude Code – installable as a PWA on mobile.
+Voice gateway for your phone – speak and forward to any backend.
 
-Speech input on Pixel → Server receives text → Claude Code CLI processes → Response back to phone.
+Each instance targets one backend (Claude Code, Dokbot, etc.) via a simple HTTP POST. Deploy multiple instances, each with its own name and color, as separate PWAs on your homescreen.
 
 ## Architecture
 
 ```
-┌─────────────┐       HTTPS/POST         ┌─────────────────┐
-│  PWA on     │  ──────────────────────► │  FastAPI Server │
-│  Android    │  ◄────────────────────── │  (VPS / local)  │
-│  (Chrome)   │       JSON Response      │                 │
-└─────────────┘                          │  → claude -p "..│
-                                         └─────────────────┘
+┌─────────────┐                    ┌──────────────────┐
+│  PWA:       │   POST /prompt     │  VoiceClaude     │   POST TARGET_URL
+│  "Claude"   │  ───────────────►  │  Container :8001 │  ───────────────►  Claude Code
+│  (green)    │  ◄───────────────  │                  │  ◄───────────────  (Mac/VPS)
+└─────────────┘                    └──────────────────┘
+
+┌─────────────┐                    ┌──────────────────┐
+│  PWA:       │   POST /prompt     │  VoiceClaude     │   POST TARGET_URL
+│  "Dokbot"   │  ───────────────►  │  Container :8002 │  ───────────────►  Dokbot
+│  (blue)     │  ◄───────────────  │                  │  ◄───────────────  (anywhere)
+└─────────────┘                    └──────────────────┘
 ```
 
-## Features
+## 1-Click UI
 
-- **Web Speech API** with `de-CH` – continuous recording without auto-stop
-- **PWA** – installable on homescreen, standalone mode
-- **Token auth** – optional Bearer token for API access
-- **Minimal UI** – dark theme, IBM Plex Mono, zero overhead
+- **Tap** → start recording
+- **Tap again** → stop and send automatically
+- No menus, no dropdowns, no second button
+
+## Configuration
+
+Everything is configured via environment variables. One instance = one target.
+
+| Variable | Description | Default |
+|---|---|---|
+| `INSTANCE_NAME` | Name shown in the UI header | `VoiceClaude` |
+| `INSTANCE_COLOR` | Accent color (hex) | `#c8ff00` |
+| `SPEECH_LANG` | Web Speech API language | `de-CH` |
+| `TARGET_URL` | Backend URL to forward voice text to | *(required)* |
+| `TARGET_TOKEN` | Bearer token for the target backend | *(empty)* |
+| `API_TOKEN` | Bearer token for this gateway | *(empty, warns)* |
+| `ALLOWED_ORIGIN` | Allowed CORS origin | *(empty, blocked)* |
+| `MAX_PROMPT_LENGTH` | Max text length | `4000` |
+| `REQUEST_TIMEOUT` | Timeout for target requests (seconds) | `120` |
+
+## Quick Start (local)
+
+```bash
+make setup
+TARGET_URL=http://localhost:9000/prompt make run
+```
+
+## Quick Start (Docker)
+
+```bash
+docker compose up -d
+```
+
+This starts two instances by default (see `docker-compose.yml`):
+- **Claude** on port 8001 (green)
+- **Dokbot** on port 8002 (blue)
+
+Edit `docker-compose.yml` to add more instances or change targets.
+
+## Target Backend Contract
+
+VoiceClaude sends a POST request to `TARGET_URL` with:
+
+```json
+POST <TARGET_URL>
+Content-Type: application/json
+Authorization: Bearer <TARGET_TOKEN>  (if set)
+
+{"text": "the transcribed voice input"}
+```
+
+The target must return JSON. VoiceClaude displays the `response` or `text` field:
+
+```json
+{"response": "answer from the backend"}
+```
+
+Any HTTP service that accepts this contract works as a target.
+
+## PWA on Pixel
+
+1. Open Chrome → `https://claude.example.com` (instance 1)
+2. Three-dot menu → "Add to Home screen"
+3. Repeat for `https://dokbot.example.com` (instance 2)
+4. Each icon on the homescreen opens a different instance
+
+## HTTPS (required for Android)
+
+Use Caddy as reverse proxy for automatic HTTPS:
+
+```
+# Caddyfile
+claude.example.com {
+    reverse_proxy localhost:8001
+}
+dokbot.example.com {
+    reverse_proxy localhost:8002
+}
+```
 
 ## File Structure
 
 ```
 voiceclaude/
-├── server.py          # FastAPI backend, invokes claude CLI
+├── server.py              # FastAPI gateway (forwards to TARGET_URL)
 ├── pwa/
-│   ├── index.html     # Frontend with Speech Recognition
-│   ├── manifest.json  # PWA manifest
-│   ├── sw.js          # Service Worker
-│   └── icon.svg       # App icon
-└── .venv/             # Python virtual environment
+│   ├── index.html         # 1-click voice UI
+│   ├── manifest.json      # PWA manifest
+│   ├── sw.js              # Service Worker
+│   └── icon.svg           # App icon
+├── Dockerfile             # Container image
+├── docker-compose.yml     # Multi-instance setup
+├── tests/
+│   └── test_server.py     # pytest tests
+├── pyproject.toml         # Python project config
+└── Makefile               # make setup/run/test/lint
 ```
 
-## Setup (local)
+## Development
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn
-
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
-
-Open `http://localhost:8000` in Chrome. Web Speech API works on localhost without HTTPS.
-
-## Setup (VPS with HTTPS)
-
-HTTPS is required for the Web Speech API on Android.
-
-```bash
-# 1. Start server (API_TOKEN is required for production!)
-API_TOKEN=your-secret-token ALLOWED_ORIGIN=https://voice.example.com uvicorn server:app --host 127.0.0.1 --port 8000
-
-# 2. Caddy as reverse proxy (automatic HTTPS)
-# Caddyfile:
-# voice.example.com {
-#     reverse_proxy localhost:8000
-# }
-```
-
-On Pixel: Chrome → `https://voice.example.com` → three-dot menu → "Add to Home screen".
-
-## Configuration
-
-| Variable | Description | Default |
-|---|---|---|
-| `API_TOKEN` | Bearer token for `/prompt` endpoint (**required for production**) | empty (warning at startup) |
-| `ALLOWED_ORIGIN` | Allowed CORS origin (e.g. `https://voice.example.com`) | empty (no cross-origin) |
-
-Server URL and token can also be configured in the app under Settings (⚙).
-
-> **Security note:** Without `API_TOKEN`, the server starts in unauthenticated mode and logs a warning. Never expose an unauthenticated server to the internet.
-
-## API
-
-```
-POST /prompt
-Content-Type: application/json
-Authorization: Bearer <token>  (optional)
-
-{"text": "Your instruction for Claude"}
-
-→ {"response": "Response from Claude"}
+make setup          # create venv, install deps
+make test           # run tests
+make lint           # ruff linter
+make format         # auto-format
+make check          # lint + test
 ```
 
 ## Requirements
 
-- Python 3.10+
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
+- Python 3.10+ (or Docker)
 - Chrome (desktop or Android) for Web Speech API
 
 ## License
