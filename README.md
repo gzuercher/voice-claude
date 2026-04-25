@@ -80,8 +80,13 @@ Alles über Umgebungsvariablen.
 | `SPEECH_LANG` | Default-Sprache (Web Speech API) | `de-CH` |
 | `MAX_PROMPT_LENGTH` | Maximale Textlänge | `4000` |
 | `REQUEST_TIMEOUT` | Timeout für ausgehende Requests (Sekunden) | `120` |
-| `API_TOKEN` | Bearer-Token für VoxGate selbst | *(leer, warnt)* |
+| `API_TOKEN` | Bearer-Token für VoxGate selbst | *(leer, Server startet nicht falls Backend gesetzt)* |
 | `ALLOWED_ORIGIN` | Erlaubter CORS-Origin | *(leer, blockiert)* |
+| `RATE_LIMIT_PER_MINUTE` | Anfragen/Minute pro IP für `/claude` und `/prompt` | `30` |
+| `SESSION_TTL_SECONDS` | Lebensdauer einer Session ohne Aktivität | `1800` |
+| `MAX_SESSIONS` | Globales Cap an gleichzeitig gehaltenen Sessions | `1000` |
+| `TRUST_PROXY_HEADERS` | `1` falls VoxGate hinter Caddy/Nginx läuft (X-Forwarded-For) | `0` |
+| `VOXGATE_ALLOW_OPEN` | `1` umgeht den Fail-Loud-Start (nur lokale Entwicklung) | *(leer)* |
 
 ### Direct-Claude-Backend (`/claude`)
 
@@ -195,6 +200,36 @@ Details, Systemd-Units und ein Beispiel-Backend findest du in [`SETUP.md`](SETUP
 | `401` | `API_TOKEN` falsch oder fehlend. Token in `localStorage.apiToken` setzen oder Header senden. |
 | Konversation "vergisst" plötzlich | Wahrscheinlich mit mehreren Workern gestartet — siehe Skalierung. |
 | Funktioniert auf Safari/iOS nicht richtig | Web Speech API ist dort eingeschränkt; Chrome empfohlen. |
+
+## Sicherheit
+
+VoxGate ist auf öffentlichen Betrieb ausgelegt. Eingebaute Schutzmassnahmen:
+
+| Mechanismus | Wirkung |
+|---|---|
+| **Fail-Loud-Start** | Server weigert sich zu starten, wenn ein Backend (`ANTHROPIC_API_KEY` oder `TARGET_URL`) konfiguriert ist, aber `API_TOKEN` leer. Nur `VOXGATE_ALLOW_OPEN=1` umgeht das (lokale Entwicklung). |
+| **Timing-sichere Token-Prüfung** | Bearer-Token-Vergleich via `secrets.compare_digest`. |
+| **Rate-Limiting** | `RATE_LIMIT_PER_MINUTE` Anfragen pro IP für `/claude` und `/prompt`. Default 30/min. |
+| **Session-TTL** | Sessions ohne Aktivität nach `SESSION_TTL_SECONDS` (default 30 Min) verworfen. |
+| **Session-Cap** | Max. `MAX_SESSIONS` parallele Sessions; älteste rausgeworfen. |
+| **`session_id`-Validierung** | Pattern `^[A-Za-z0-9_-]{8,128}$`. Steuerzeichen, Newlines etc. abgewiesen. |
+| **Security-Header** | `Content-Security-Policy` (strikt, kein Inline-Script), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (nur Mikrofon). |
+| **Audit-Log** | Jede Anfrage wird mit IP, Session-Präfix und Textlänge geloggt (kein Inhalt). 429 und Backend-Fehler ebenfalls. |
+| **CORS** | Default leer = blockiert. `ALLOWED_ORIGIN` explizit setzen. |
+
+### Operative Pflichten
+
+- **`API_TOKEN`** zwingend vor öffentlicher Erreichbarkeit setzen — möglichst lang (≥32 Zeichen, generiert via `openssl rand -hex 32`).
+- **`TRUST_PROXY_HEADERS=1`** setzen, sobald VoxGate hinter Caddy/Nginx läuft, damit das Rate-Limit auf die echte Client-IP wirkt statt auf die Proxy-IP. Nur einschalten, wenn der Proxy `X-Forwarded-For` zuverlässig setzt — sonst fälscht der Client sich seine IP.
+- **Anthropic-Spending-Limit** im Console-Dashboard setzen, als Versicherung gegen Token-Leak.
+- **Caddy-CSP-Override** vermeiden: VoxGate setzt CSP selbst — Caddy nicht zusätzlich `header` für CSP konfigurieren.
+- **Key-Rotation:** `ANTHROPIC_API_KEY` wird beim ersten `/claude`-Aufruf gecacht. Nach Rotation Container/Prozess neu starten.
+
+### Verbleibende Risiken
+
+- **localStorage-XSS:** Das Bearer-Token (falls genutzt vom PWA-Client) liegt in `localStorage`. CSP blockiert Inline-Scripts, aber jede zukünftige `innerHTML`-Verwendung mit Antwortdaten würde das Token gefährden. Bei Code-Änderungen am PWA-Output beachten.
+- **In-Memory-Sessions:** Verläufe leben nur im Prozess. Bei Neustart weg. Kein Datenträger-Leak — bewusst so.
+- **Kein Per-Benutzer-Rate-Limit:** Rate-Limit ist pro IP. Hinter NAT/CGNAT teilen sich Benutzer ein Limit.
 
 ## Skalierung & Deployment-Beschränkungen
 

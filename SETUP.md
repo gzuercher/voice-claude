@@ -32,6 +32,10 @@ API_TOKEN_CLAUDE=ein-zufaelliger-langer-string
 ```
 
 > ⚠️ **Wichtig:** Setze `API_TOKEN_*` immer, sobald der Server von aussen erreichbar ist. Ohne Token kann jeder Anfragen stellen — bei aktivem `/claude` zahlst du die Anthropic-Rechnung für Fremde.
+>
+> Seit der Security-Härtung **weigert sich der Server zu starten**, wenn ein Backend konfiguriert ist und `API_TOKEN` leer. Nur `VOXGATE_ALLOW_OPEN=1` umgeht das (lokale Entwicklung).
+>
+> Token generieren: `openssl rand -hex 32`
 
 ### 3. Starten
 
@@ -95,6 +99,14 @@ dokbot.example.com {
   reverse_proxy localhost:8002
 }
 ```
+
+Caddy setzt `X-Forwarded-For` automatisch. Damit Rate-Limit auf die echte Client-IP greift, in `.env` zusätzlich:
+
+```bash
+TRUST_PROXY_HEADERS=1
+```
+
+> ⚠️ `TRUST_PROXY_HEADERS=1` nur einschalten, wenn der Server **ausschliesslich** über den Proxy erreichbar ist. Sonst kann der Client `X-Forwarded-For` selbst setzen und das Rate-Limit umgehen.
 
 ```bash
 apt install caddy
