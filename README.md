@@ -4,8 +4,22 @@
 
 VoxGate is a small web app you install on your phone home screen like a
 native app. Tap the mic, speak, and hear the answer read back to you.
-Recognizes standard German and French; the UI defaults to the Swiss
-locales `de-CH` and `fr-CH`.
+
+## Languages
+
+VoxGate is language-agnostic by design — Claude itself replies in any
+language you speak. The UI offers a small selectable set (default:
+German, French, Italian, English, Spanish — Swiss locales for the
+first three). What actually works depends on three independent layers:
+
+| Layer | What it does | Caveats |
+|---|---|---|
+| **Speech recognition** | Browser converts your voice to text | Standard variants only — no Schwyzerdütsch / regional dialects. Quality varies by browser (Chrome best, Safari/iOS limited). |
+| **LLM (Claude)** | Understands and answers | Multilingual; not a limit here. |
+| **TTS (read-aloud)** | Browser speaks the response | Depends on the voices installed on the device. The locale tag (`de-CH`, `fr-CH`, …) is a *preference*, not a guarantee. |
+
+The selectable list is configurable via `SPEECH_LANGS` (see
+[`docs/setup.md`](docs/setup.md#configuration)).
 
 ## What do you want to do?
 

@@ -27,6 +27,15 @@ TARGET_TOKEN = os.environ.get("TARGET_TOKEN", "")
 INSTANCE_NAME = os.environ.get("INSTANCE_NAME", "VoxGate")
 INSTANCE_COLOR = os.environ.get("INSTANCE_COLOR", "#c8ff00")
 SPEECH_LANG = os.environ.get("SPEECH_LANG", "de-CH")
+SPEECH_LANGS = [
+    lang.strip()
+    for lang in os.environ.get(
+        "SPEECH_LANGS", "de-CH,fr-CH,it-CH,en-US,es-ES"
+    ).split(",")
+    if lang.strip()
+]
+if SPEECH_LANG not in SPEECH_LANGS:
+    SPEECH_LANGS.insert(0, SPEECH_LANG)
 MAX_PROMPT_LENGTH = int(os.environ.get("MAX_PROMPT_LENGTH", "4000"))
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "")
 REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", "120"))
@@ -177,6 +186,7 @@ async def get_config():
         "name": INSTANCE_NAME,
         "color": INSTANCE_COLOR,
         "lang": SPEECH_LANG,
+        "langs": SPEECH_LANGS,
         "maxLength": MAX_PROMPT_LENGTH,
     }
 

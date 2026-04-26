@@ -53,7 +53,8 @@ Plus at least one backend:
 |---|---|---|
 | `INSTANCE_NAME` | `VoxGate` | Name shown in the UI header. |
 | `INSTANCE_COLOR` | `#c8ff00` | Accent color (hex). |
-| `SPEECH_LANG` | `de-CH` | Default language (Web Speech API). |
+| `SPEECH_LANG` | `de-CH` | Default language tag (BCP-47). Used as the initial selection and as a preference for the TTS voice. |
+| `SPEECH_LANGS` | `de-CH,fr-CH,it-CH,en-US,es-ES` | Comma-separated list of selectable languages in the UI. `SPEECH_LANG` is always included automatically. |
 
 ### Tuning
 

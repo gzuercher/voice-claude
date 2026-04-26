@@ -59,6 +59,20 @@ class TestConfigEndpoint:
         assert data["name"] == "TestBot"
         assert data["color"] == "#ff0000"
         assert data["lang"] == "de-CH"
+        assert "de-CH" in data["langs"]
+
+    def test_speech_langs_configurable(self, monkeypatch):
+        monkeypatch.setenv("SPEECH_LANGS", "de-CH,en-US")
+        client = _reload_app()
+        data = client.get("/config").json()
+        assert data["langs"] == ["de-CH", "en-US"]
+
+    def test_default_lang_always_in_langs_list(self, monkeypatch):
+        monkeypatch.setenv("SPEECH_LANG", "pt-PT")
+        monkeypatch.setenv("SPEECH_LANGS", "de-CH,en-US")
+        client = _reload_app()
+        data = client.get("/config").json()
+        assert data["langs"][0] == "pt-PT"
 
 
 class TestPromptEndpoint:

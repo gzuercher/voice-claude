@@ -1,9 +1,13 @@
-  let instanceConfig = { name: 'VoxGate', color: '#c8ff00', lang: 'de-CH', maxLength: 4000 };
+  let instanceConfig = { name: 'VoxGate', color: '#c8ff00', lang: 'de-CH', langs: ['de-CH', 'fr-CH'], maxLength: 4000 };
   let recognition = null;
   let isRecording = false;
   let currentTranscript = '';
   let finalTranscript = '';
-  const SUPPORTED_LANGS = ['de-CH', 'fr-CH'];
+  function supportedLangs() {
+    return (instanceConfig.langs && instanceConfig.langs.length)
+      ? instanceConfig.langs
+      : [instanceConfig.lang];
+  }
   let currentLang = localStorage.getItem('voxLang') || null;
   let muted = localStorage.getItem('voxMuted') === '1';
   let sessionId = sessionStorage.getItem('voxSession');
@@ -41,9 +45,10 @@
   }
 
   langBtn.addEventListener('click', () => {
+    const langs = supportedLangs();
     const lang = activeLang();
-    const idx = SUPPORTED_LANGS.indexOf(lang);
-    const next = SUPPORTED_LANGS[(idx + 1) % SUPPORTED_LANGS.length] || SUPPORTED_LANGS[0];
+    const idx = langs.indexOf(lang);
+    const next = langs[(idx + 1) % langs.length] || langs[0];
     currentLang = next;
     localStorage.setItem('voxLang', next);
     updateLangBtn();
