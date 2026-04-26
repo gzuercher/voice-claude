@@ -1,50 +1,13 @@
 services:
-  claude:
+  voxgate:
     build: .
     ports:
-      - "8001:8000"
-    environment:
-      - INSTANCE_NAME=Claude
-      - INSTANCE_COLOR=#c8ff00
-      - SPEECH_LANG=de-CH
-      - TARGET_URL=${TARGET_URL_CLAUDE:-}
-      - TARGET_TOKEN=${TARGET_TOKEN_CLAUDE:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - SYSTEM_PROMPT=${SYSTEM_PROMPT:-}
-      - API_TOKEN=${API_TOKEN_CLAUDE:-}
-      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN_CLAUDE:-}
-      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-30}
-      - SESSION_TTL_SECONDS=${SESSION_TTL_SECONDS:-1800}
-      - MAX_SESSIONS=${MAX_SESSIONS:-1000}
-      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-0}
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
     restart: unless-stopped
 
-  dokbot:
-    build: .
-    ports:
-      - "8002:8000"
-    environment:
-      - INSTANCE_NAME=Dokbot
-      - INSTANCE_COLOR=#00b4d8
-      - SPEECH_LANG=de-CH
-      - TARGET_URL=${TARGET_URL_DOKBOT:-http://host.docker.internal:9001/prompt}
-      - TARGET_TOKEN=${TARGET_TOKEN_DOKBOT:-}
-      - API_TOKEN=${API_TOKEN_DOKBOT:-}
-      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN_DOKBOT:-}
-      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-30}
-      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-0}
-    restart: unless-stopped
-
-  # Add more instances as needed:
-  # notes:
-  #   build: .
-  #   ports:
-  #     - "8003:8000"
-  #   environment:
-  #     - INSTANCE_NAME=Notes
-  #     - INSTANCE_COLOR=#ff6b6b
-  #     - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-  #     - SYSTEM_PROMPT=You are a note-taking assistant.
-  #     - API_TOKEN=${API_TOKEN_NOTES:-}
-  #     - ALLOWED_ORIGIN=${ALLOWED_ORIGIN_NOTES:-}
-  #     - TRUST_PROXY_HEADERS=1
+# To run multiple instances side by side (e.g. one for direct Claude,
+# one forwarding to a custom backend), see the "Multi-instance" section
+# in SETUP.md.
