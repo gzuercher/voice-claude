@@ -2,24 +2,32 @@
 
 Installation, configuration and operation. For what VoxGate *does* see
 [`README.md`](README.md). For development workflow see
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+[`CONTRIBUTING.md`](CONTRIBUTING.md). For the operator security checklist
+see [`SECURITY.md`](SECURITY.md). For backend examples see
+[`docs/backends.md`](docs/backends.md).
 
-## Quick start (Docker)
+## Welche Variante?
+
+| Variante | Wann | Doku |
+|---|---|---|
+| **Caddy-Bundle** | Eigene (Sub-)Domain, Server mit freien Ports 80/443 | [`deploy/caddy/README.md`](deploy/caddy/README.md) |
+| **API-only (Root-Compose)** | Eigene Reverse-Proxy-Infra (Traefik, k8s, nginx) | unten, "Reverse-Proxy-Anleitung" |
+| **Tunnel davorhaengen** | Keine eigene Domain | unten, "Tunnel davorhaengen" |
+| **Direct (ohne Docker)** | Lokale Entwicklung | unten, "Direct (without Docker)" |
+
+## Quick start (Root-Compose, api-only)
 
 ```bash
 git clone git@github.com:gzuercher/vox-gate.git
 cd vox-gate
 cp .env.example .env
-# Edit .env — at minimum set API_TOKEN and one backend
+# Optional: API_TOKEN, ANTHROPIC_API_KEY oder TARGET_URL setzen
 docker compose up -d
 ```
 
-VoxGate listens on `http://localhost:8000`.
-
-> ⚠️ The server refuses to start when a backend (`ANTHROPIC_API_KEY` or
-> `TARGET_URL`) is configured but `API_TOKEN` is empty. Generate one with
-> `openssl rand -hex 32`. For local development only, `VOXGATE_ALLOW_OPEN=1`
-> bypasses the check.
+VoxGate listens on `http://localhost:8000`. Wenn `API_TOKEN` leer
+bleibt, generiert der Server beim Start einen und loggt ihn — fuer
+Produktion solltest du einen festen Wert setzen.
 
 ## Configuration
 
@@ -60,38 +68,119 @@ Plus at least one backend:
 | `RATE_LIMIT_PER_MINUTE` | `30` | Requests per IP per minute for `/claude` and `/prompt`. |
 | `SESSION_TTL_SECONDS` | `1800` | Lifetime of an idle session. |
 | `MAX_SESSIONS` | `1000` | Global cap on concurrent sessions. |
-| `TRUST_PROXY_HEADERS` | `0` | Set to `1` behind Caddy/Nginx (X-Forwarded-For). See HTTPS section. |
-| `VOXGATE_ALLOW_OPEN` | *(empty)* | Set to `1` to bypass the fail-loud check (development only). |
+| `TRUST_PROXY_HEADERS` | `0` | Set to `1` behind Caddy/Nginx (X-Forwarded-For). See Reverse-Proxy section. |
 
-## HTTPS (mandatory for Web Speech API on Android)
+## Reverse-Proxy-Anleitung
 
-Caddy with automatic certificates:
+Web Speech API verlangt HTTPS auf Android. Drei Wege:
 
-```
-# Caddyfile
+1. **Caddy-Bundle** — fertig konfiguriert in [`deploy/caddy/`](deploy/caddy/).
+   Empfohlen, wenn du nichts anderes laufen hast.
+2. **Eigenes Caddy/Nginx** vor dem Root-Compose — siehe unten.
+3. **Tunnel** statt eigenem Proxy — siehe naechster Abschnitt.
+
+Voraussetzungen fuer Variante 2:
+
+- Server mit freien Ports 80/443 (oder anderen, wenn der Proxy auf
+  anderen Ports lauscht).
+- DNS A/AAAA-Eintrag fuer den gewuenschten Hostname auf den Server.
+- Firewall (z.B. UFW): 80, 443 offen, 8000 *nicht* von aussen erreichbar.
+
+### Caddy (eigene Installation)
+
+```caddy
+# /etc/caddy/Caddyfile
 voxgate.example.com {
-  reverse_proxy localhost:8000
+    reverse_proxy localhost:8000
 }
 ```
 
 ```bash
 apt install caddy
-caddy run --config /etc/caddy/Caddyfile
+systemctl enable --now caddy
 ```
 
-Caddy sets `X-Forwarded-For` automatically. To make rate limiting use
-the real client IP, also set in `.env`:
+Caddy holt das Zertifikat automatisch und erneuert es selbststaendig.
+
+### Nginx
+
+```nginx
+# /etc/nginx/sites-available/voxgate
+server {
+    listen 443 ssl http2;
+    server_name voxgate.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/voxgate.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/voxgate.example.com/privkey.pem;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name voxgate.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+
+Zertifikat-Renewal mit certbot (`certbot --nginx -d voxgate.example.com`).
+Cron/Timer prueft alle 12 h.
+
+### Wichtig fuer beide
+
+- In `.env` setzen: `TRUST_PROXY_HEADERS=1` (damit das Rate-Limit auf
+  die echte Client-IP statt auf die Proxy-IP angewendet wird).
+- In `.env` setzen: `ALLOWED_ORIGIN=https://voxgate.example.com`.
+- **Keine** zusaetzliche `Content-Security-Policy` im Proxy — VoxGate
+  setzt eine strikte CSP selbst.
+
+## Tunnel davorhaengen
+
+Wenn du keine eigene Domain hast (oder keine Ports oeffnen willst),
+kannst du VoxGate hinter einen Tunnel-Service haengen. Das HTTPS und der
+Hostname kommen vom Tunnel-Anbieter.
+
+```
+[Phone] ──HTTPS──► [Tunnel-Anbieter] ──► [VoxGate auf 127.0.0.1:8000]
+```
+
+VoxGate selbst aendert sich nicht — Tunnel zeigt auf `localhost:8000`,
+genau wie ein lokaler Reverse-Proxy.
+
+### Cloudflare Tunnel
 
 ```bash
-TRUST_PROXY_HEADERS=1
+# einmalig einrichten
+cloudflared tunnel login
+cloudflared tunnel create voxgate
+# Subdomain auf den Tunnel routen
+cloudflared tunnel route dns voxgate voxgate.example.com
+# Service starten — VoxGate muss auf 127.0.0.1:8000 lauschen
+cloudflared tunnel run --url http://localhost:8000 voxgate
 ```
 
-> ⚠️ Only enable `TRUST_PROXY_HEADERS=1` when the server is reachable
-> **only** through the proxy. Otherwise clients can spoof
-> `X-Forwarded-For` and bypass rate limiting.
->
-> ⚠️ Do not add a CSP header in Caddy — VoxGate sets its own and a
-> duplicate would either be merged confusingly or override the strict one.
+Setup-Doku: <https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/>.
+
+In `.env`: `TRUST_PROXY_HEADERS=1` und `ALLOWED_ORIGIN=https://voxgate.example.com`.
+
+### Tailscale Funnel
+
+```bash
+tailscale up
+tailscale serve https / http://localhost:8000
+tailscale funnel 443 on
+```
+
+Setup-Doku: <https://tailscale.com/kb/1223/funnel>.
+
+In `.env`: `TRUST_PROXY_HEADERS=1` und
+`ALLOWED_ORIGIN=https://<machine>.<tailnet>.ts.net`.
 
 ## Multi-instance (advanced)
 
@@ -185,42 +274,8 @@ For multiple instances, copy the unit (`voxgate-claude.service`,
 
 ## Custom backend for `/prompt`
 
-Any HTTP service that fulfills this contract works as a target:
-
-```
-POST <TARGET_URL>
-Content-Type: application/json
-Authorization: Bearer <TARGET_TOKEN>     # if TARGET_TOKEN is set
-
-{"text": "voice input text"}
-→ {"response": "answer"}
-```
-
-### Example: Claude Code wrapper
-
-A minimal backend that invokes the Claude Code CLI:
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-import subprocess
-
-app = FastAPI()
-
-class Req(BaseModel):
-    text: str
-
-@app.post("/prompt")
-async def prompt(req: Req):
-    result = subprocess.run(
-        ["claude", "-p", req.text],
-        capture_output=True, text=True, timeout=120,
-    )
-    return {"response": result.stdout.strip()}
-```
-
-Runs on the machine where Claude Code is installed (e.g. your Mac).
-VoxGate runs on the server and forwards to it.
+Backend-Vertrag und Beispiele (Python/FastAPI mit Claude-CLI,
+Node/Express, Bash-Stub, Browser-Client): [`docs/backends.md`](docs/backends.md).
 
 ## Security
 
