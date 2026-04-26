@@ -2,22 +2,48 @@
 
 **Talk to Claude (or another chatbot) by voice — straight from your phone.**
 
-VoxGate is a small web app you install on your smartphone home screen
-like a native app. Tap the microphone button, speak, and hear the answer
-read back to you. It works in Swiss German and Swiss French.
+VoxGate is a small web app you install on your phone home screen like a
+native app. Tap the mic, speak, and hear the answer read back to you.
+Works in Swiss German and Swiss French.
 
-## What can I do with it?
+## Was willst du tun?
 
-- **Talk to Claude directly** — provide an Anthropic API key and VoxGate
-  calls Claude for you. Conversation context is preserved within a session.
-- **Talk to your own backend** — for example a script on your Mac that
-  runs Claude Code in the terminal. VoxGate forwards your spoken prompt
-  as an HTTP POST.
-- **Run multiple instances side by side** — e.g. a green PWA "Claude"
-  and a blue PWA "Dokbot", each with its own icon on the home screen.
+### A) Mit Claude per Stimme reden — eigene (Sub-)Domain
 
-Typical use case: you go for a walk, tap the Claude icon, ask "What
-time is it in Tokyo?", and hear the answer without having to type.
+Empfohlener Pfad. Du brauchst eine Subdomain, die auf deinen Server
+zeigt, und einen Anthropic-API-Key.
+
+```bash
+git clone git@github.com:gzuercher/vox-gate.git
+cd vox-gate/deploy/caddy
+cp .env.example .env
+# eintragen: VOXGATE_DOMAIN, ACME_EMAIL, ANTHROPIC_API_KEY
+docker compose up -d
+```
+
+Caddy holt automatisch ein Lets-Encrypt-Zertifikat. Details:
+[`deploy/caddy/README.md`](deploy/caddy/README.md).
+
+### B) Eigenen Bot per Stimme erreichen (z.B. einen Planer)
+
+Gleicher Aufbau wie A, aber statt `ANTHROPIC_API_KEY` setzt du eine
+`TARGET_URL`, die auf dein Backend zeigt. Dein Backend muss einen
+einfachen HTTP-Vertrag erfuellen — siehe
+[`docs/backends.md`](docs/backends.md).
+
+### C) Auf bestehender Reverse-Proxy-Infra (Traefik, Kubernetes, nginx)
+
+Nutze das Root-`docker-compose.yml`. Es bringt nur den VoxGate-Container
+mit; Cert-Handling und Hostname-Routing macht deine Infra. Hinweise:
+[`SETUP.md`](SETUP.md#reverse-proxy-anleitung).
+
+### D) Ohne eigene Domain (Cloudflare Tunnel / Tailscale Funnel)
+
+VoxGate laesst sich problemlos hinter einen Tunnel haengen — Cloudflare
+oder Tailscale stellen das HTTPS und einen Hostnamen. Konzept und
+Pointer auf die offiziellen Setups: [`SETUP.md`](SETUP.md#tunnel-davorhaengen).
+
+---
 
 ## Using the app
 
@@ -25,8 +51,8 @@ After installing the PWA on your home screen, open it:
 
 | Element | Function |
 |---|---|
-| **Microphone button (large)** | Tap to start recording. Tap again to send. |
-| **Language (top left)** | Switch between `DE-CH` and `FR-CH`. Choice is persisted. |
+| **Mic button (large)** | Tap to start recording. Tap again to send. |
+| **Language (top left)** | Switch between `DE-CH` and `FR-CH`. Persisted. |
 | **Speaker (top right)** | Mute/unmute speech output. |
 | **Status dot (top right)** | Green = ready, blinking = sending, red = error. |
 | **New conversation (bottom)** | Reset the conversation history. |
@@ -39,35 +65,36 @@ again while audio is playing, the current speech is cancelled.
 - **Browser:** Chrome on Android or desktop (Web Speech API).
   Safari/iOS support is limited.
 - **Microphone permission** must be granted on first launch.
-- **HTTPS** is mandatory on Android.
+- **HTTPS** is mandatory on Android — solved by Caddy/Tunnel above.
 
 ## Installing the PWA on your phone
 
-1. Open Chrome on Android → `https://your-voxgate-host`
-2. Three-dot menu → "Add to Home screen"
+1. Open Chrome on Android → `https://your-voxgate-host`.
+2. Three-dot menu → "Add to Home screen".
 3. The app now opens like any other app, with its own icon and color.
 
-If multiple instances are deployed (different hostnames), repeat for
-each — every URL becomes its own PWA.
+If you deploy multiple instances on different hostnames, repeat for
+each — every URL becomes its own PWA with its own color.
 
 ## Troubleshooting
 
 | Problem | What to do |
 |---|---|
-| Microphone doesn't react | Grant permission in the browser. On Android the page must be HTTPS. |
-| No speech output | Check the speaker button (top right). iOS has limited Web Speech support. |
-| `401` error | Bearer token missing or wrong — ask your operator. |
-| `429` error | Rate limit hit. Wait a minute and retry. |
-| `503` on `/claude` | Anthropic backend not configured — ask your operator. |
-| Conversation suddenly "forgets" | The server was restarted; sessions live in memory. |
-| Doesn't work properly on Safari/iOS | Web Speech API is limited there; use Chrome. |
+| Mic doesn't react | Grant permission in the browser. On Android the page must be HTTPS. |
+| No speech output | Check the speaker button. iOS has limited Web Speech support. |
+| `401` error | Bearer token missing or wrong — see operator/.env. |
+| `429` error | Rate limit hit. Wait and retry. |
+| `503` on `/claude` | Anthropic backend not configured — set `ANTHROPIC_API_KEY`. |
+| Conversation suddenly "forgets" | Server restart — sessions are in-memory by design. |
+| Doesn't work on Safari/iOS | Web Speech API is limited there; use Chrome. |
 
 ---
 
-The rest of this file is reference material for developers and clients
-calling VoxGate's HTTP API. For installing and operating a VoxGate
-server see [`SETUP.md`](SETUP.md). For contributing see
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+The rest is reference material for developers and clients calling the
+HTTP API. For installation/operation see [`SETUP.md`](SETUP.md). For
+security checklist see [`SECURITY.md`](SECURITY.md). For backend
+examples see [`docs/backends.md`](docs/backends.md). For contributing
+see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Architecture
 
@@ -79,7 +106,7 @@ server see [`SETUP.md`](SETUP.md). For contributing see
 │  screen)    │                             │                  │
 │             │     POST /prompt            │                  │     POST TARGET_URL
 │             │  ────────────────────────►  │                  │  ────────────────────►  Custom backend
-│             │  ◄────────────────────────  │                  │  ◄────────────────────  (e.g. Mac with Claude Code)
+│             │  ◄────────────────────────  │                  │  ◄────────────────────  (e.g. zursetti-planner)
 └─────────────┘                             └──────────────────┘
 ```
 
@@ -88,16 +115,11 @@ The server exposes two endpoints:
 - **`/claude`** — calls the Anthropic API directly. Keeps conversation
   history per session. Uses `ANTHROPIC_API_KEY`.
 - **`/prompt`** — forwards to a custom backend (`TARGET_URL`).
-  Stateless. Original use case: voice gateway for any chatbot service.
-
-The PWA uses `/claude`. `/prompt` is kept for backwards compatibility
-and can be driven by your own clients.
+  Stateless. Voice gateway for any chatbot service.
 
 ## API reference
 
 ### `POST /claude`
-
-Direct Anthropic call with session history.
 
 ```json
 POST /claude
@@ -110,26 +132,12 @@ Content-Type: application/json
 }
 ```
 
-Response:
+Response: `{ "response": "Currently it's …" }`
 
-```json
-{ "response": "Currently it's …" }
-```
-
-Errors:
-- `401` — token missing or wrong
-- `422` — validation failed (`text` too long/empty, `session_id` missing or malformed)
-- `429` — rate limit exceeded
-- `502` — Anthropic API error
-- `503` — `ANTHROPIC_API_KEY` not configured
-
-History: up to 20 messages per `session_id` are kept in memory; older
-ones are dropped in pairs. `session_id` must match
-`^[A-Za-z0-9_-]{8,128}$`.
+`session_id` must match `^[A-Za-z0-9_-]{8,128}$`. Up to 20 messages
+per session are kept in memory; older ones are dropped in pairs.
 
 ### `POST /prompt`
-
-Pure forwarding to `TARGET_URL`.
 
 ```json
 POST /prompt
@@ -139,17 +147,8 @@ Content-Type: application/json
 { "text": "Hello backend" }
 ```
 
-VoxGate forwards:
-
-```json
-POST <TARGET_URL>
-Authorization: Bearer <TARGET_TOKEN>
-Content-Type: application/json
-
-{ "text": "Hello backend" }
-```
-
-The backend must return JSON with a `response` (or `text`) field.
+VoxGate forwards to `TARGET_URL` and expects JSON with a `response`
+(or `text`) field back.
 
 ### `GET /config`
 
@@ -159,6 +158,16 @@ Returns instance configuration for the PWA. No auth.
 { "name": "Claude", "color": "#c8ff00", "lang": "de-CH", "maxLength": 4000 }
 ```
 
+### Errors
+
+| Code | Meaning |
+|---|---|
+| 401 | Token missing or wrong |
+| 422 | Validation failed |
+| 429 | Rate limit exceeded |
+| 502 | Backend error |
+| 503 | Backend not configured |
+
 ## File structure
 
 ```
@@ -166,14 +175,19 @@ voxgate/
 ├── server.py              # FastAPI gateway (/claude, /prompt, /config)
 ├── pwa/                   # PWA (HTML, JS, CSS, manifest, service worker)
 ├── tests/                 # pytest tests
+├── deploy/
+│   └── caddy/             # Bundled Caddy + VoxGate (recommended path)
+├── docs/
+│   └── backends.md        # /prompt and /claude examples
 ├── .claude/rules/         # Code rules for Claude Code
-├── .env.example           # Configuration template
+├── .env.example           # Configuration template (api-only, root)
+├── docker-compose.yml     # api-only (no proxy bundled)
 ├── Dockerfile
-├── docker-compose.yml
 ├── pyproject.toml
 ├── Makefile               # make setup/run/test/lint
-├── README.md              # This file — end-user view
+├── README.md              # This file
 ├── SETUP.md               # Installation and operation
+├── SECURITY.md            # Operator checklist
 ├── CONTRIBUTING.md        # Development workflow
 ├── CLAUDE.md              # Playbook for Claude Code
 └── lessons.md             # Lessons learned
