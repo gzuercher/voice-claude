@@ -222,23 +222,9 @@ async def prompt(req: Req):
 Runs on the machine where Claude Code is installed (e.g. your Mac).
 VoxGate runs on the server and forwards to it.
 
-## Security obligations of the operator
+## Security
 
-- Set **`API_TOKEN`** before exposing the server publicly — long
-  (≥32 chars), generated via `openssl rand -hex 32`.
-- Set **`TRUST_PROXY_HEADERS=1`** once VoxGate runs behind Caddy/Nginx
-  so rate limiting applies to the real client IP. Only enable when the
-  proxy reliably sets `X-Forwarded-For` — otherwise clients can spoof
-  their own IP.
-- Set an **Anthropic spending limit** in the console dashboard as
-  insurance against token leaks.
-- **Key rotation:** `ANTHROPIC_API_KEY` is cached on first `/claude`
-  call. Restart the container/process after rotation.
-
-What VoxGate brings out of the box (no operator action needed): fail-loud
-start without `API_TOKEN`, timing-safe token check, per-IP rate limiting,
-session TTL and global cap, strict `session_id` validation, strict CSP
-and security headers, audit log without payload, CORS blocked by default.
+Operator-Checkliste vor dem Public-Deploy: [`SECURITY.md`](SECURITY.md).
 
 ## Scaling & deployment constraints
 
