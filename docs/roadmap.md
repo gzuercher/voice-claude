@@ -79,14 +79,6 @@ Larger work that introduces new dependencies or changes the surface.
 - **Cost:** another external dependency, another API key, latency, per-
   request cost. Streaming support needed to keep perceived speed.
 
-### MCP-server bridge
-- **Value:** VoxGate becomes a voice front-end for any MCP server —
-  calendars, todo lists, home automation, your own data. Massive
-  expansion of capability without writing per-feature integrations.
-- **Cost:** non-trivial. MCP client code, tool-use plumbing, security
-  story for arbitrary tool execution. Probably needs a small allow-list
-  per instance.
-
 ### Image / camera input
 - **Value:** point phone camera at something, ask Claude about it.
   Multimodal is one of Claude's strengths and currently unused.
@@ -176,6 +168,13 @@ why:
 - **Bundling cloudflared/Tailscale as docker-compose recipes.** The
   upstream tools have excellent setup UIs and docs. We point at them
   in `docs/setup.md` instead of duplicating moving targets.
+- **Built-in MCP-server bridge.** Voice-driven tool execution would
+  turn VoxGate from a 250-line voice forwarder into a multi-round
+  tool-use orchestrator with its own security perimeter, allowlists,
+  and connection management. The right place for that complexity is
+  the user's own `/prompt` backend: it can speak MCP, do tool-use
+  loops with Claude internally, and hand VoxGate just the final
+  reply. VoxGate stays small.
 
 ---
 
