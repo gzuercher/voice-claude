@@ -15,11 +15,23 @@
 <header>
   <button class="header-btn" id="langBtn" aria-label="Sprache umschalten">DE-CH</button>
   <div class="header-center">
-    <span class="logo" id="logo">VoxGate</span>
+    <button class="logo logo-btn" id="logo" aria-label="Zugangsschlüssel ändern">VoxGate</button>
   </div>
   <button class="header-btn" id="muteBtn" aria-label="Sprachausgabe stummschalten">🔊</button>
   <div class="status-dot" id="statusDot"></div>
 </header>
+
+<div class="auth-overlay" id="authOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <form class="auth-card" id="authForm" autocomplete="off">
+    <h2 id="authTitle">Zugang</h2>
+    <p>Diese Instanz ist privat. Gib den Zugangsschlüssel ein, den du vom Betreiber erhalten hast.</p>
+    <label for="tokenInput" class="auth-label">Zugangsschlüssel</label>
+    <input type="password" id="tokenInput" name="token" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <p class="auth-error" id="authError" hidden>Zugang verweigert. Schlüssel prüfen.</p>
+    <button type="submit" class="auth-submit">Speichern</button>
+    <p class="auth-hint">Wird nur lokal auf diesem Gerät gespeichert.</p>
+  </form>
+</div>
 
 <main id="messages">
   <div class="empty-state" id="emptyState">

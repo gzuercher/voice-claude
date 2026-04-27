@@ -84,11 +84,39 @@ again while audio is playing, the current speech is cancelled.
 ## Installing the PWA on your phone
 
 1. Open Chrome on Android → `https://your-voxgate-host`.
-2. Three-dot menu → "Add to Home screen".
-3. The app now opens like any other app, with its own icon and color.
+2. The first screen asks for an **access key**. Paste the
+   `API_TOKEN` your operator gave you — it is stored only in this
+   browser's `localStorage`.
+3. Three-dot menu → "Add to Home screen".
+4. The app now opens like any other app, with its own icon and color.
 
 If you deploy multiple instances on different hostnames, repeat for
 each — every URL becomes its own PWA with its own color.
+
+To change the access key later, tap the **VoxGate logo** in the header.
+
+## Access keys (operator + user)
+
+VoxGate is single-tenant: every authorized device holds the same
+`API_TOKEN`. The PWA prompts for it on first start and on any 401
+response. Practical guidance:
+
+- **Set a stable `API_TOKEN`** in `.env` before sharing the URL — the
+  auto-generated, per-restart token is fine for development but breaks
+  every client on every container restart.
+- **Distribute the token through a confidential channel** (Signal,
+  password manager, in person). Do not put it in the URL.
+- **Token rotation:** change `API_TOKEN` in `.env`, restart, then have
+  every user re-enter the new key. The PWA shows the prompt
+  automatically because the next call returns 401.
+- **Lost device:** rotate the token. There is no per-device revocation
+  by design — VoxGate trades that simplicity for being a tiny,
+  dependency-free service.
+
+Edge-level pre-auth (HTTP Basic Auth in your reverse proxy, Cloudflare
+Access, Tailscale-only access) is independently possible — see
+[`docs/setup.md`](docs/setup.md) and the security checklist in
+[`docs/security.md`](docs/security.md).
 
 ## Troubleshooting
 
@@ -96,7 +124,7 @@ each — every URL becomes its own PWA with its own color.
 |---|---|
 | Mic doesn't react | Grant permission in the browser. On Android the page must be HTTPS. |
 | No speech output | Check the speaker button. iOS has limited Web Speech support. |
-| `401` error | Bearer token missing or wrong — see operator/.env. |
+| `401` error | Access key missing or wrong. Tap the VoxGate logo to re-enter; the PWA also prompts automatically on the next request. |
 | `429` error | Rate limit hit. Wait and retry. |
 | `503` on `/claude` | Anthropic backend not configured — set `ANTHROPIC_API_KEY`. |
 | Conversation suddenly "forgets" | Server restart — sessions are in-memory by design. |

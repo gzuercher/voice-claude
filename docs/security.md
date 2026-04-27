@@ -66,6 +66,26 @@ Active without any operator action:
 - Audit log without payload.
 - CORS blocked by default.
 
+## Optional: edge-level pre-auth for closed groups
+
+VoxGate's bearer-token check is cryptographically sufficient — without
+the token nobody can run prompts or hit your `/prompt` backend. For a
+closed group of users (family, small team) you may still want to hide
+the instance from random visitors of the URL. That is independent of
+VoxGate and lives one layer up:
+
+- **HTTP Basic Auth in Caddy/nginx.** Add a `basicauth` block in front
+  of VoxGate. Users see the browser's auth dialog before the PWA
+  loads. Credentials persist across PWA installs.
+- **Cloudflare Access** in front of a Cloudflare Tunnel. Magic-link
+  email login at the edge; no code changes inside VoxGate. Free tier
+  covers small groups.
+- **Tailnet-only**: run VoxGate behind Tailscale and skip Funnel.
+  Only members of your tailnet can reach the URL at all.
+
+In all three cases, VoxGate's `API_TOKEN` still applies inside —
+defence in depth, not a replacement.
+
 ## Residual risks
 
 - **localStorage XSS:** the bearer token lives in browser

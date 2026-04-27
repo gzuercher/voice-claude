@@ -34,6 +34,36 @@
   const langBtn = document.getElementById('langBtn');
   const muteBtn = document.getElementById('muteBtn');
   const newConvBtn = document.getElementById('newConvBtn');
+  const authOverlay = document.getElementById('authOverlay');
+  const authForm = document.getElementById('authForm');
+  const tokenInput = document.getElementById('tokenInput');
+  const authError = document.getElementById('authError');
+
+  function showAuthOverlay(withError) {
+    authError.hidden = !withError;
+    tokenInput.value = '';
+    authOverlay.hidden = false;
+    setTimeout(() => tokenInput.focus(), 50);
+  }
+
+  function hideAuthOverlay() {
+    authOverlay.hidden = true;
+    authError.hidden = true;
+  }
+
+  authForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = tokenInput.value.trim();
+    if (!value) return;
+    localStorage.setItem('apiToken', value);
+    hideAuthOverlay();
+  });
+
+  logo.addEventListener('click', () => showAuthOverlay(false));
+
+  if (!localStorage.getItem('apiToken')) {
+    showAuthOverlay(false);
+  }
 
   function updateLangBtn() {
     langBtn.textContent = activeLang().toUpperCase();
@@ -228,6 +258,13 @@
         body: JSON.stringify({ text, session_id: sessionId })
       });
 
+      if (res.status === 401) {
+        localStorage.removeItem('apiToken');
+        typingDiv.remove();
+        setStatus('error');
+        showAuthOverlay(true);
+        return;
+      }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       const reply = data.response || data.text || JSON.stringify(data);
