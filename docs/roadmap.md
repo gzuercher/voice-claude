@@ -21,12 +21,6 @@ Small, well-defined improvements that fit the existing architecture.
   text accumulation. Modest. The tricky part is making `speechSynthesis`
   speak partial sentences without sounding chopped.
 
-### Voice activity detection (auto-stop)
-- **Value:** today the user must tap mic twice. With VAD the app sends
-  automatically after a pause. Closer to a "natural conversation".
-- **Cost:** small frontend change, but tuning silence thresholds across
-  devices is fiddly. Keep tap-to-send as fallback.
-
 ### Conversation history persistence (per session, per user)
 - **Value:** restart no longer wipes ongoing threads. Phone reload
   doesn't lose context.
