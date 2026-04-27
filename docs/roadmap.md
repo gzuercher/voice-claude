@@ -108,14 +108,6 @@ Larger work that introduces new dependencies or changes the surface.
 Direction the project *could* take but each point would change what
 VoxGate is. Listed for discussion, not commitment.
 
-### Local-only mode (privacy-first)
-- **Value:** drop external dependencies entirely. Whisper.cpp for STT,
-  llama.cpp / Ollama for the LLM, Piper for TTS. No data leaves the
-  device's LAN.
-- **Cost:** completely different deployment story (GPU? CPU-only?
-  model downloads). Quality far below Claude. Could become a
-  "VoxGate Local" sibling project rather than an option.
-
 ### Native mobile apps (iOS/Android)
 - **Value:** access to platform STT (Apple's, Google's), better
   background behaviour, push notifications, real wake-word support.
@@ -175,6 +167,11 @@ why:
   the user's own `/prompt` backend: it can speak MCP, do tool-use
   loops with Claude internally, and hand VoxGate just the final
   reply. VoxGate stays small.
+- **Local-only mode (Whisper.cpp + llama.cpp + Piper).** Different
+  deployment story (model downloads, GPU/CPU choices, far lower
+  reply quality), different audience, and a completely separate
+  ops-and-update treadmill. If this is ever wanted, it is a sibling
+  project ("VoxGate Local"), not a flag inside this one.
 
 ---
 
