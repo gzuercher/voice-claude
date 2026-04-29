@@ -17,6 +17,17 @@ estimated time:
 
 ## Höher
 
+### Automatic dark/light mode
+- **Value:** the UI is currently dark-only. Daylight readability on
+  phones suffers when the system is set to light mode. Following
+  `prefers-color-scheme` would make VoxGate fit the device context
+  without manual toggling — relevant for productive daily use.
+- **Cost:** small. Move the existing palette into a `:root` /
+  `@media (prefers-color-scheme: light)` split, derive `--accent-dim`
+  for the light variant, verify contrast on the auth overlay and
+  message bubbles. Per-instance `INSTANCE_COLOR` already drives the
+  accent, so no server change needed.
+
 ### Streaming responses (SSE)
 - **Value:** Claude replies start playing/showing within ~500 ms instead
   of after the full response. The single biggest perceived-quality win

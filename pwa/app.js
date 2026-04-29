@@ -60,7 +60,14 @@
   // 'review': recording stopped, transcript editable, next tap sends.
   let state = 'idle';
   let currentTranscript = '';
-  let finalTranscript = '';
+  // Text locked in from previous recognition sessions (after auto-restart).
+  // Continuous mode is unreliable on Android Chrome — onend fires repeatedly
+  // mid-utterance, so we restart and stitch sessions together here.
+  let sessionFinal = '';
+  // Live text from the currently-running recognition session, rebuilt from
+  // scratch on every onresult event to stay idempotent against Android's
+  // tendency to re-emit the same result with shifting isFinal flags.
+  let currentSessionText = '';
   function supportedLangs() {
     return (instanceConfig.langs && instanceConfig.langs.length)
       ? instanceConfig.langs
@@ -265,6 +272,49 @@
     }
   }
 
+  // Build the current session's text from a SpeechRecognitionResultList.
+  // Filters out finals that are merely a prefix of a later final — this
+  // happens on Android Chrome, where each new word causes the engine to
+  // re-emit the entire growing phrase as another isFinal=true result.
+  function buildSessionText(results) {
+    const finals = [];
+    let interim = '';
+    for (let i = 0; i < results.length; i++) {
+      const t = results[i][0].transcript;
+      if (results[i].isFinal) {
+        finals.push(t.trim());
+      } else {
+        interim += t;
+      }
+    }
+    const kept = [];
+    for (let i = 0; i < finals.length; i++) {
+      let isPrefix = false;
+      for (let j = i + 1; j < finals.length; j++) {
+        if (finals[j].startsWith(finals[i])) {
+          isPrefix = true;
+          break;
+        }
+      }
+      if (!isPrefix) kept.push(finals[i]);
+    }
+    return (kept.join(' ') + ' ' + interim).trim();
+  }
+
+  // Merge previous-session locked text with the running session's text.
+  // If the running text is a continuation/restatement of the locked text
+  // (Android pattern), replace; if it's strictly older, keep the locked;
+  // otherwise append as a new utterance (desktop pattern).
+  function mergeTranscript(prev, curr) {
+    prev = (prev || '').trim();
+    curr = (curr || '').trim();
+    if (!prev) return curr;
+    if (!curr) return prev;
+    if (curr.startsWith(prev)) return curr;
+    if (prev.endsWith(curr)) return prev;
+    return prev + ' ' + curr;
+  }
+
   function startRecording() {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert(t('speechUnsupported'));
@@ -279,7 +329,8 @@
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    finalTranscript = '';
+    sessionFinal = '';
+    currentSessionText = '';
     currentTranscript = '';
 
     recognition.onstart = () => {
@@ -289,22 +340,17 @@
     };
 
     recognition.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) {
-          finalTranscript += t + ' ';
-        } else {
-          interim += t;
-        }
-      }
-      currentTranscript = (finalTranscript + interim).trim();
+      currentSessionText = buildSessionText(e.results);
+      currentTranscript = mergeTranscript(sessionFinal, currentSessionText);
       updateTranscript(currentTranscript, true);
     };
 
     recognition.onend = () => {
-      // Continuous-mode workaround: some browsers fire onend mid-session.
-      // Only restart if we are still recording.
+      // Lock the just-ended session's text and restart if still recording.
+      // Use mergeTranscript so an Android-style restatement collapses into
+      // sessionFinal instead of duplicating it.
+      sessionFinal = mergeTranscript(sessionFinal, currentSessionText);
+      currentSessionText = '';
       if (state === 'recording') {
         recognition.start();
       }
@@ -352,7 +398,8 @@
   function discardReview() {
     stopRecognition();
     currentTranscript = '';
-    finalTranscript = '';
+    sessionFinal = '';
+    currentSessionText = '';
     setState('idle');
     setStatus('');
   }
@@ -361,7 +408,8 @@
     const text = (transcriptBox.textContent || '').trim();
     setState('idle');
     currentTranscript = '';
-    finalTranscript = '';
+    sessionFinal = '';
+    currentSessionText = '';
     if (!text) return;
     await sendText(text);
   }
