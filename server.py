@@ -53,6 +53,16 @@ MAX_SESSIONS = int(os.environ.get("MAX_SESSIONS", "1000"))
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30"))
 TRUST_PROXY_HEADERS = os.environ.get("TRUST_PROXY_HEADERS", "0") == "1"
 
+# Opt-in debug log capture. Default OFF. When DEBUG_ENABLED=1 and DEBUG_TOKEN
+# is set, /debug-log accepts JSON payloads from the PWA running with
+# ?debug=<token>. Payloads are written to stderr (visible via docker logs).
+# When disabled, the endpoint returns 404 — its existence stays hidden.
+DEBUG_ENABLED = os.environ.get("DEBUG_ENABLED", "0") == "1"
+DEBUG_TOKEN = os.environ.get("DEBUG_TOKEN", "").strip()
+DEBUG_MAX_BODY_BYTES = 8 * 1024
+DEBUG_RATE_LIMIT_PER_SEC = 20
+_debug_buckets: dict = {}
+
 if os.environ.get("VOXGATE_ALLOW_OPEN"):
     print(
         "WARNING: VOXGATE_ALLOW_OPEN is no longer used. API_TOKEN is now "
@@ -181,6 +191,31 @@ class PromptRequest(BaseModel):
 class ClaudeRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=MAX_PROMPT_LENGTH)
     session_id: str = Field(..., pattern=r"^[A-Za-z0-9_-]{8,128}$")
+
+
+@app.post("/debug-log")
+async def debug_log(request: Request):
+    if not DEBUG_ENABLED or not DEBUG_TOKEN:
+        raise HTTPException(status_code=404)
+    presented = request.headers.get("x-debug-token", "")
+    if not presented or not secrets.compare_digest(presented, DEBUG_TOKEN):
+        raise HTTPException(status_code=401)
+    body = await request.body()
+    if len(body) > DEBUG_MAX_BODY_BYTES:
+        raise HTTPException(status_code=413)
+    ip = _client_ip(request)
+    now = time.time()
+    bucket = _debug_buckets.setdefault(ip, deque())
+    while bucket and bucket[0] < now - 1:
+        bucket.popleft()
+    if len(bucket) >= DEBUG_RATE_LIMIT_PER_SEC:
+        raise HTTPException(status_code=429)
+    bucket.append(now)
+    if len(_debug_buckets) > 1000:
+        for stale_ip in [k for k, v in _debug_buckets.items() if not v]:
+            _debug_buckets.pop(stale_ip, None)
+    print(f"DEBUG ip={ip} {body.decode('utf-8', errors='replace')}", file=sys.stderr, flush=True)
+    return JSONResponse(status_code=204, content=None)
 
 
 @app.get("/config")

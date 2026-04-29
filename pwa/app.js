@@ -1,9 +1,23 @@
   let instanceConfig = { name: 'VoxGate', color: '#c8ff00', lang: 'de-CH', langs: ['de-CH', 'fr-CH'], maxLength: 4000 };
 
+  // Autonyms — each language labelled in its own form. The picker shows
+  // these regardless of current UI language so a French speaker can find
+  // "Français" without having to read German first.
+  const LANGUAGE_LABELS = {
+    'de-CH': 'Deutsch',
+    'fr-CH': 'Français',
+    'it-CH': 'Italiano',
+    'en-US': 'English',
+    'es-ES': 'Español',
+  };
+
+  function languageLabel(code) {
+    return LANGUAGE_LABELS[code] || code;
+  }
+
   const I18N = {
     'de-CH': {
-      langName: 'Deutsch',
-      headerToggleLang: 'Sprache umschalten',
+      headerToggleLang: 'Sprache wählen',
       headerToggleAuth: 'Zugangsschlüssel ändern',
       headerToggleMute: 'Sprachausgabe stummschalten',
       authTitle: 'Zugang',
@@ -26,8 +40,7 @@
       speechUnsupported: 'Web Speech API wird nicht unterstützt. Bitte Chrome verwenden.',
     },
     'fr-CH': {
-      langName: 'Français',
-      headerToggleLang: 'Changer de langue',
+      headerToggleLang: 'Choisir la langue',
       headerToggleAuth: "Modifier la clé d'accès",
       headerToggleMute: 'Couper la synthèse vocale',
       authTitle: 'Accès',
@@ -49,11 +62,87 @@
       errorPrefix: 'Erreur : ',
       speechUnsupported: 'Web Speech API non supportée. Utilisez Chrome.',
     },
+    'it-CH': {
+      headerToggleLang: 'Scegli la lingua',
+      headerToggleAuth: "Cambia chiave d'accesso",
+      headerToggleMute: 'Disattiva sintesi vocale',
+      authTitle: 'Accesso',
+      authIntro: "Questa istanza è privata. Inserisci la chiave d'accesso ricevuta dal gestore.",
+      authLabel: "Chiave d'accesso",
+      authError: 'Accesso negato. Verifica la chiave.',
+      authSubmit: 'Salva',
+      authHint: 'Salvato solo su questo dispositivo.',
+      emptyTitle: 'Tocca e parla',
+      emptyHint: 'Tocca di nuovo per inviare',
+      transcriptReady: 'Pronto...',
+      micAria: 'Registra e invia',
+      discardAria: 'Annulla registrazione',
+      micRecord: 'Registra',
+      micStop: 'Stop',
+      micSend: 'Invia',
+      newConv: 'Nuova conversazione',
+      userLabel: 'Io',
+      errorPrefix: 'Errore: ',
+      speechUnsupported: 'Web Speech API non supportata. Usa Chrome.',
+    },
+    'en-US': {
+      headerToggleLang: 'Choose language',
+      headerToggleAuth: 'Change access key',
+      headerToggleMute: 'Mute voice output',
+      authTitle: 'Access',
+      authIntro: 'This instance is private. Enter the access key you received from the operator.',
+      authLabel: 'Access key',
+      authError: 'Access denied. Check the key.',
+      authSubmit: 'Save',
+      authHint: 'Stored only on this device.',
+      emptyTitle: 'Tap and speak',
+      emptyHint: 'Tap again to send',
+      transcriptReady: 'Ready...',
+      micAria: 'Record and send',
+      discardAria: 'Discard recording',
+      micRecord: 'Record',
+      micStop: 'Stop',
+      micSend: 'Send',
+      newConv: 'New conversation',
+      userLabel: 'You',
+      errorPrefix: 'Error: ',
+      speechUnsupported: 'Web Speech API not supported. Use Chrome.',
+    },
+    'es-ES': {
+      headerToggleLang: 'Elegir idioma',
+      headerToggleAuth: 'Cambiar clave de acceso',
+      headerToggleMute: 'Silenciar voz',
+      authTitle: 'Acceso',
+      authIntro: 'Esta instancia es privada. Introduce la clave de acceso recibida del operador.',
+      authLabel: 'Clave de acceso',
+      authError: 'Acceso denegado. Verifica la clave.',
+      authSubmit: 'Guardar',
+      authHint: 'Almacenado solo en este dispositivo.',
+      emptyTitle: 'Toca y habla',
+      emptyHint: 'Toca de nuevo para enviar',
+      transcriptReady: 'Listo...',
+      micAria: 'Grabar y enviar',
+      discardAria: 'Cancelar grabación',
+      micRecord: 'Grabar',
+      micStop: 'Stop',
+      micSend: 'Enviar',
+      newConv: 'Nueva conversación',
+      userLabel: 'Yo',
+      errorPrefix: 'Error: ',
+      speechUnsupported: 'Web Speech API no soportada. Usa Chrome.',
+    },
   };
 
   function t(key) {
     const dict = I18N[activeLang()] || I18N['de-CH'];
     return dict[key] !== undefined ? dict[key] : key;
+  }
+
+  // Debug logger. No-op unless ?debug=<token> is in the URL and debug.js
+  // initialised window.__dbg. Never log secrets, user input or LLM
+  // responses — only event names and structural metadata.
+  function dbg(type, data) {
+    if (window.__dbg) window.__dbg(type, data);
   }
   let recognition = null;
   // 'idle': waiting for user. 'recording': SpeechRecognition active.
@@ -96,7 +185,7 @@
   const messagesEl = document.getElementById('messages');
   const statusDot = document.getElementById('statusDot');
   const logo = document.getElementById('logo');
-  const langBtn = document.getElementById('langBtn');
+  const langSelect = document.getElementById('langSelect');
   const muteBtn = document.getElementById('muteBtn');
   const newConvBtn = document.getElementById('newConvBtn');
   const discardBtn = document.getElementById('discardBtn');
@@ -131,10 +220,50 @@
     showAuthOverlay(false);
   }
 
+  function populateLangSelect() {
+    const langs = supportedLangs();
+    const current = activeLang();
+    // Rebuild only if the option set changed (avoids losing focus on every
+    // applyLang call).
+    const desired = langs.join(',');
+    if (langSelect.dataset.langs !== desired) {
+      langSelect.innerHTML = '';
+      for (const code of langs) {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = languageLabel(code);
+        langSelect.appendChild(opt);
+      }
+      langSelect.dataset.langs = desired;
+    }
+    if (langSelect.value !== current) langSelect.value = current;
+  }
+
+  // Pick a sensible language when the user has no stored preference yet.
+  // Browser/OS languages are checked first by exact tag, then by primary
+  // subtag (de-DE → de-CH). Falls back to the server-side default.
+  function detectInitialLang() {
+    const stored = localStorage.getItem('voxLang');
+    const supported = supportedLangs();
+    if (stored && supported.includes(stored)) return stored;
+    const candidates = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : (navigator.language ? [navigator.language] : []);
+    for (const c of candidates) {
+      if (supported.includes(c)) return c;
+    }
+    for (const c of candidates) {
+      const primary = c.split('-')[0].toLowerCase();
+      const found = supported.find(l => l.split('-')[0].toLowerCase() === primary);
+      if (found) return found;
+    }
+    return instanceConfig.lang;
+  }
+
   function applyLang() {
     const lang = activeLang();
     document.documentElement.lang = lang.split('-')[0];
-    langBtn.textContent = t('langName');
+    populateLangSelect();
     document.querySelectorAll('[data-i18n]').forEach(el => {
       el.textContent = t(el.dataset.i18n);
     });
@@ -157,11 +286,9 @@
     muteBtn.classList.toggle('muted', muted);
   }
 
-  langBtn.addEventListener('click', () => {
-    const langs = supportedLangs();
-    const lang = activeLang();
-    const idx = langs.indexOf(lang);
-    const next = langs[(idx + 1) % langs.length] || langs[0];
+  langSelect.addEventListener('change', () => {
+    const next = langSelect.value;
+    if (!next || next === currentLang) return;
     currentLang = next;
     localStorage.setItem('voxLang', next);
     if (state !== 'idle') discardReview();
@@ -253,6 +380,7 @@
   }
 
   function setState(next) {
+    dbg('state', { from: state, to: next });
     state = next;
     micBtn.classList.toggle('recording', next === 'recording');
     if (next === 'idle') {
@@ -334,14 +462,33 @@
     currentTranscript = '';
 
     recognition.onstart = () => {
+      dbg('sr-onstart', { lang: recognition.lang });
       setState('recording');
-      updateTranscript('', true);
+      // On Android Chrome, recognition.onend fires on every micro-pause and
+      // we auto-restart. Don't wipe the display on each restart — keep the
+      // already-locked text visible so the user sees their utterance grow.
+      // On the first start sessionFinal is '', falling back to the placeholder.
+      updateTranscript(sessionFinal.trim(), true);
       setStatus('online');
     };
 
     recognition.onresult = (e) => {
+      dbg('sr-onresult', {
+        resultIndex: e.resultIndex,
+        length: e.results.length,
+        results: Array.from(e.results).map((r) => ({
+          transcript: r[0] && r[0].transcript,
+          isFinal: r.isFinal,
+          confidence: r[0] && r[0].confidence,
+        })),
+      });
       currentSessionText = buildSessionText(e.results);
       currentTranscript = mergeTranscript(sessionFinal, currentSessionText);
+      dbg('sr-merged', {
+        sessionFinal: sessionFinal,
+        currentSessionText: currentSessionText,
+        display: currentTranscript,
+      });
       updateTranscript(currentTranscript, true);
     };
 
@@ -349,7 +496,14 @@
       // Lock the just-ended session's text and restart if still recording.
       // Use mergeTranscript so an Android-style restatement collapses into
       // sessionFinal instead of duplicating it.
+      const before = sessionFinal;
       sessionFinal = mergeTranscript(sessionFinal, currentSessionText);
+      dbg('sr-onend', {
+        before: before,
+        currentSessionText: currentSessionText,
+        after: sessionFinal,
+        willRestart: state === 'recording',
+      });
       currentSessionText = '';
       if (state === 'recording') {
         recognition.start();
@@ -357,6 +511,7 @@
     };
 
     recognition.onerror = (e) => {
+      dbg('sr-onerror', { error: e.error });
       if (e.error === 'no-speech') return;
       console.error(e.error);
       stopRecognition();
@@ -456,7 +611,15 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  // Initial lang from localStorage or browser/OS, refined once /config gives
+  // us the actual SPEECH_LANGS list.
+  if (!currentLang) currentLang = detectInitialLang();
   applyLang();
   updateMuteBtn();
-  loadConfig().then(applyLang);
+  loadConfig().then(() => {
+    if (!localStorage.getItem('voxLang')) {
+      currentLang = detectInitialLang();
+    }
+    applyLang();
+  });
   setStatus('');

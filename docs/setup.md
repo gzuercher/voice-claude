@@ -51,10 +51,24 @@ Plus at least one backend:
 
 | Variable | Default | Description |
 |---|---|---|
-| `INSTANCE_NAME` | `VoxGate` | Name shown in the UI header. |
-| `INSTANCE_COLOR` | `#c8ff00` | Accent color (hex). |
-| `SPEECH_LANG` | `de-CH` | Default language tag (BCP-47). Used as the initial selection and as a preference for the TTS voice. |
-| `SPEECH_LANGS` | `de-CH,fr-CH,it-CH,en-US,es-ES` | Comma-separated list of selectable languages in the UI. `SPEECH_LANG` is always included automatically. |
+| `INSTANCE_NAME` | `VoxGate` | Technical identifier of the instance. Used in logs and as a fallback for the UI title. |
+| `INSTANCE_DISPLAY_NAME` | *(empty → falls back to `INSTANCE_NAME`)* | Human-friendly title shown in the header and browser tab. Set this to a readable name (e.g. `"ZPlanner Voice"`). |
+| `INSTANCE_COLOR` | `#c8ff00` | Accent color (hex). Drives focus rings, status dot, active borders. |
+| `SPEECH_LANG` | `de-CH` | Default language tag (BCP-47). Initial selection if the visitor has no stored preference and the browser/OS language is not in `SPEECH_LANGS`. |
+| `SPEECH_LANGS` | `de-CH,fr-CH,it-CH,en-US,es-ES` | Comma-separated list of selectable languages. The PWA renders a picker in the header; the choice drives speech recognition, TTS *and* the UI text. The first visit auto-detects from `navigator.languages`, then persists the user's choice in `localStorage`. |
+
+### Debug capture (off by default)
+
+| Variable | Default | Description |
+|---|---|---|
+| `DEBUG_ENABLED` | `0` | Master switch for the `/debug-log` endpoint. When `0`, the endpoint returns `404` and its existence stays hidden. |
+| `DEBUG_TOKEN` | *(empty)* | Shared secret. The PWA must present it as `X-Debug-Token` for `/debug-log` to accept events. Leave empty to disable. |
+
+When both are set, opening the PWA at `?debug=<token>` activates an
+in-browser overlay that streams SpeechRecognition / state events to the
+server. Events appear in `docker logs <container>` prefixed with `DEBUG`,
+with rate-limit and 8 KiB body cap. Intended for short, opt-in debugging
+sessions — flip back to `DEBUG_ENABLED=0` when done.
 
 ### Tuning
 
