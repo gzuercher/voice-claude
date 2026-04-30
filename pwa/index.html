@@ -22,6 +22,7 @@
     <button class="logo logo-btn" id="logo" data-i18n-aria="headerToggleAuth" aria-label="Konto wechseln">VoxGate</button>
   </div>
   <button class="header-btn" id="muteBtn" data-i18n-aria="headerToggleMute" aria-label="Sprachausgabe stummschalten">🔊</button>
+  <button class="header-btn" id="headerLogoutBtn" data-i18n-aria="logout" aria-label="Abmelden" hidden>🚪</button>
   <div class="status-dot" id="statusDot"></div>
 </header>
 
@@ -49,9 +50,9 @@
 </main>
 
 <footer>
-  <div class="transcript-box" id="transcriptBox" aria-live="polite" spellcheck="false">Bereit...</div>
+  <div class="transcript-box" id="transcriptBox" aria-live="polite" spellcheck="false" contenteditable="plaintext-only">Bereit...</div>
   <div class="action-row">
-    <button class="discard-btn" id="discardBtn" type="button" data-i18n-aria="discardAria" aria-label="Aufnahme verwerfen" hidden>✕</button>
+    <button class="discard-btn" id="discardBtn" type="button" data-i18n-aria="clearAria" aria-label="Text löschen" hidden>✕</button>
     <button class="mic-btn" id="micBtn" data-i18n-aria="micAria" aria-label="Aufnehmen und senden">
       <span class="mic-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

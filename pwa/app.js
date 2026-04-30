@@ -33,7 +33,7 @@
       emptyHint: 'Nochmal tippen = senden',
       transcriptReady: 'Bereit...',
       micAria: 'Aufnehmen und senden',
-      discardAria: 'Aufnahme verwerfen',
+      clearAria: 'Text löschen',
       micRecord: 'Aufnehmen',
       micStop: 'Stop',
       micSend: 'Senden',
@@ -59,7 +59,7 @@
       emptyHint: 'Touchez à nouveau pour envoyer',
       transcriptReady: 'Prêt...',
       micAria: 'Enregistrer et envoyer',
-      discardAria: "Annuler l'enregistrement",
+      clearAria: 'Effacer le texte',
       micRecord: 'Enregistrer',
       micStop: 'Arrêter',
       micSend: 'Envoyer',
@@ -85,7 +85,7 @@
       emptyHint: 'Tocca di nuovo per inviare',
       transcriptReady: 'Pronto...',
       micAria: 'Registra e invia',
-      discardAria: 'Annulla registrazione',
+      clearAria: 'Cancella testo',
       micRecord: 'Registra',
       micStop: 'Stop',
       micSend: 'Invia',
@@ -111,7 +111,7 @@
       emptyHint: 'Tap again to send',
       transcriptReady: 'Ready...',
       micAria: 'Record and send',
-      discardAria: 'Discard recording',
+      clearAria: 'Clear text',
       micRecord: 'Record',
       micStop: 'Stop',
       micSend: 'Send',
@@ -137,7 +137,7 @@
       emptyHint: 'Toca de nuevo para enviar',
       transcriptReady: 'Listo...',
       micAria: 'Grabar y enviar',
-      discardAria: 'Cancelar grabación',
+      clearAria: 'Borrar texto',
       micRecord: 'Grabar',
       micStop: 'Stop',
       micSend: 'Enviar',
@@ -302,6 +302,21 @@
 
   discardBtn.addEventListener('click', () => discardReview());
 
+  // Typing into the transcript box from idle or recording switches to
+  // review. From idle we also wipe the placeholder ("Bereit...") so the
+  // first keystroke does not append to it.
+  transcriptBox.addEventListener('beforeinput', () => {
+    if (state === 'idle') {
+      transcriptBox.textContent = '';
+      setState('review');
+    } else if (state === 'recording') {
+      stopRecognition();
+      sessionFinal = mergeTranscript(sessionFinal, currentSessionText);
+      currentSessionText = '';
+      setState('review');
+    }
+  });
+
   function speak(text) {
     if (muted || !('speechSynthesis' in window) || !text) return;
     speechSynthesis.cancel();
@@ -374,16 +389,13 @@
     micBtn.classList.toggle('recording', next === 'recording');
     if (next === 'idle') {
       micLabel.textContent = t('micRecord');
-      transcriptBox.removeAttribute('contenteditable');
       discardBtn.hidden = true;
       updateTranscript('', false);
     } else if (next === 'recording') {
       micLabel.textContent = t('micStop');
-      transcriptBox.removeAttribute('contenteditable');
       discardBtn.hidden = true;
     } else if (next === 'review') {
       micLabel.textContent = t('micSend');
-      transcriptBox.setAttribute('contenteditable', 'true');
       transcriptBox.classList.remove('active');
       discardBtn.hidden = false;
     }

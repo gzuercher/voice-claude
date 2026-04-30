@@ -49,7 +49,13 @@ const VoxGateAuth = (() => {
     }
     currentUser = null;
     if (onChange) onChange(null);
+    updateHeaderUI();
     showOverlay();
+  }
+
+  function updateHeaderUI() {
+    const headerLogoutBtn = document.getElementById('headerLogoutBtn');
+    if (headerLogoutBtn) headerLogoutBtn.hidden = !currentUser;
   }
 
   function withAuthHeaders(init) {
@@ -81,6 +87,7 @@ const VoxGateAuth = (() => {
           if (result.status === 200) {
             currentUser = result.data;
             if (onChange) onChange(currentUser);
+            updateHeaderUI();
             hideOverlay();
           } else if (result.status === 403) {
             showOverlay(translate('notAllowedError'));
@@ -142,13 +149,22 @@ const VoxGateAuth = (() => {
         logout();
       });
     }
+    const headerLogoutBtn = document.getElementById('headerLogoutBtn');
+    if (headerLogoutBtn) {
+      headerLogoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        logout();
+      });
+    }
     const me = await fetchMe();
     if (me) {
       currentUser = me;
       if (onChange) onChange(currentUser);
+      updateHeaderUI();
       hideOverlay();
     } else {
       currentUser = null;
+      updateHeaderUI();
       showOverlay();
     }
   }
