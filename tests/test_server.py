@@ -858,7 +858,6 @@ class TestStaticFiles:
             ("/styles.css", ":root"),
             ("/manifest.json", "name"),
             ("/sw.js", ""),
-            ("/icon.svg", "<svg"),
         ],
     )
     def test_pwa_asset_served(self, path, fragment):
@@ -867,6 +866,42 @@ class TestStaticFiles:
         assert res.status_code == 200
         if fragment:
             assert fragment in res.text
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/icon-192.png",
+            "/icon-512.png",
+            "/icon-maskable-512.png",
+            "/apple-touch-icon.png",
+            "/favicon-32.png",
+        ],
+    )
+    def test_icon_assets_served(self, path):
+        # PWA install relies on every manifest icon being reachable.
+        # Catches stale references after icon-format swaps.
+        client = _reload_app(login=False)
+        res = client.get(path)
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("image/")
+        assert int(res.headers.get("content-length", "0")) > 0
+
+    def test_manifest_lists_required_icon_purposes(self):
+        client = _reload_app(login=False)
+        manifest = client.get("/manifest.json").json()
+        purposes = {icon["purpose"] for icon in manifest["icons"]}
+        # Both "any" (legacy launchers) and "maskable" (Android adaptive)
+        # must be present, otherwise the install icon falls back to a
+        # generic globe.
+        assert "any" in purposes
+        assert "maskable" in purposes
+
+    def test_index_links_apple_touch_icon(self):
+        # iOS standalone PWA needs apple-touch-icon explicitly — it
+        # ignores the manifest for that purpose.
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        assert 'rel="apple-touch-icon"' in html
 
     def test_index_has_menu_drawer_and_help_modal(self):
         # Catches accidental regressions on the hamburger UI rebuild.
