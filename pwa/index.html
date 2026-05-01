@@ -105,8 +105,16 @@
 
 <footer>
   <div class="transcript-box" id="transcriptBox" aria-live="polite" spellcheck="false" contenteditable="plaintext-only">Bereit...</div>
+  <div class="attachment-chips" id="attachmentChips" hidden></div>
   <div class="action-row">
-    <button class="discard-btn" id="discardBtn" type="button" data-i18n-aria="clearAria" aria-label="Text löschen" hidden>✕</button>
+    <button class="icon-action-btn camera-btn" id="cameraBtn" type="button" data-i18n-aria="cameraAria" aria-label="Bild anhängen">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 7h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/>
+        <circle cx="12" cy="13" r="3.5"/>
+      </svg>
+    </button>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    <button class="icon-action-btn discard-btn" id="discardBtn" type="button" data-i18n-aria="clearAria" aria-label="Text löschen" hidden>✕</button>
     <button class="mic-btn" id="micBtn" data-i18n-aria="micAria" aria-label="Aufnehmen und senden">
       <span class="mic-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

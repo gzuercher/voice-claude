@@ -441,6 +441,149 @@ class TestChatStrictResponseContract:
 
 
 # -----------------------------------------------------------------------------
+# /chat — attachments (one-way image input)
+# -----------------------------------------------------------------------------
+
+
+# Tiny valid base64 payload (1x1 PNG), big enough to satisfy min_length=4.
+_TINY_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAA"
+    "C0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+
+
+class TestChatAttachments:
+    """Pure pass-through: VoxGate forwards attachments verbatim — no
+    decoding, no filesystem. The backend at TARGET_URL is responsible
+    for whatever it wants to do with the bytes."""
+
+    def test_attachment_forwarded_verbatim(self):
+        client = _reload_app()
+        cm, captured = _mock_backend({"response": "got the photo"})
+        with cm:
+            res = client.post(
+                "/chat",
+                json={
+                    "text": "what is this?",
+                    "session_id": GOOD_SID,
+                    "attachments": [
+                        {"kind": "image", "mime": "image/jpeg",
+                         "name": "p.jpg", "data": _TINY_B64},
+                    ],
+                },
+            )
+        assert res.status_code == 200
+        sent = captured["json"]
+        assert sent["attachments"] == [
+            {"kind": "image", "mime": "image/jpeg", "name": "p.jpg", "data": _TINY_B64},
+        ]
+        # Existing fields stay intact alongside the new key.
+        assert sent["user"] == "what is this?"
+        assert sent["user_email"] == TEST_EMAIL
+
+    def test_empty_text_with_attachment_accepted(self):
+        # User can send a photo without typing — server must not reject.
+        client = _reload_app()
+        cm, captured = _mock_backend({"response": "ok"})
+        with cm:
+            res = client.post(
+                "/chat",
+                json={
+                    "text": "",
+                    "session_id": GOOD_SID,
+                    "attachments": [
+                        {"kind": "image", "mime": "image/png", "data": _TINY_B64},
+                    ],
+                },
+            )
+        assert res.status_code == 200
+        assert captured["json"]["user"] == ""
+        assert len(captured["json"]["attachments"]) == 1
+
+    def test_no_text_no_attachments_rejected(self):
+        # Empty in every dimension is meaningless; reject explicitly.
+        client = _reload_app()
+        res = client.post(
+            "/chat", json={"text": "", "session_id": GOOD_SID, "attachments": []},
+        )
+        assert res.status_code == 422
+
+    def test_no_attachments_field_field_omitted_in_forward(self):
+        # When the client sends no attachments, VoxGate must NOT add an
+        # empty `attachments: []` key to the forward — backends might
+        # branch on presence.
+        client = _reload_app()
+        cm, captured = _mock_backend({"response": "ok"})
+        with cm:
+            client.post("/chat", json={"text": "hi", "session_id": GOOD_SID})
+        assert "attachments" not in captured["json"]
+
+    def test_attachment_mime_whitelist_enforced(self):
+        client = _reload_app()
+        res = client.post(
+            "/chat",
+            json={
+                "text": "hi",
+                "session_id": GOOD_SID,
+                "attachments": [
+                    {"kind": "image", "mime": "application/x-shellscript",
+                     "data": _TINY_B64},
+                ],
+            },
+        )
+        assert res.status_code == 422
+        assert "mime" in res.text.lower()
+
+    def test_attachment_size_limit_enforced(self, monkeypatch):
+        monkeypatch.setenv("MAX_ATTACHMENT_BASE64_BYTES", "100")
+        client = _reload_app()
+        res = client.post(
+            "/chat",
+            json={
+                "text": "hi",
+                "session_id": GOOD_SID,
+                "attachments": [
+                    {"kind": "image", "mime": "image/jpeg",
+                     "data": "x" * 200},
+                ],
+            },
+        )
+        assert res.status_code == 422
+
+    def test_attachment_count_limit_enforced(self, monkeypatch):
+        monkeypatch.setenv("MAX_ATTACHMENTS_PER_REQUEST", "1")
+        client = _reload_app()
+        res = client.post(
+            "/chat",
+            json={
+                "text": "hi",
+                "session_id": GOOD_SID,
+                "attachments": [
+                    {"kind": "image", "mime": "image/jpeg", "data": _TINY_B64},
+                    {"kind": "image", "mime": "image/jpeg", "data": _TINY_B64},
+                ],
+            },
+        )
+        assert res.status_code == 422
+        assert "many" in res.text.lower() or "too" in res.text.lower()
+
+    def test_oversize_text_still_rejected_with_attachment(self):
+        # Text-only validation rules still apply even with attachments.
+        client = _reload_app()
+        res = client.post(
+            "/chat",
+            json={
+                "text": "x" * 5000,
+                "session_id": GOOD_SID,
+                "attachments": [
+                    {"kind": "image", "mime": "image/jpeg", "data": _TINY_B64},
+                ],
+            },
+        )
+        assert res.status_code == 422
+
+
+# -----------------------------------------------------------------------------
 # /selftest — authenticated end-to-end probe
 # -----------------------------------------------------------------------------
 
@@ -902,6 +1045,18 @@ class TestStaticFiles:
         client = _reload_app(login=False)
         html = client.get("/").text
         assert 'rel="apple-touch-icon"' in html
+
+    def test_index_has_camera_input_and_chip_area(self):
+        # Sanity that the image-input plumbing is wired into the HTML.
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        for marker in (
+            'id="cameraBtn"',
+            'id="fileInput"',
+            'accept="image/*"',
+            'id="attachmentChips"',
+        ):
+            assert marker in html, f"index.html missing {marker}"
 
     def test_index_has_menu_drawer_and_help_modal(self):
         # Catches accidental regressions on the hamburger UI rebuild.

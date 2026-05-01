@@ -123,6 +123,8 @@ sessions — flip back to `DEBUG_ENABLED=0` when done.
 | Variable | Default | Description |
 |---|---|---|
 | `MAX_PROMPT_LENGTH` | `4000` | Maximum text length per request. |
+| `MAX_ATTACHMENT_BASE64_BYTES` | `4194304` (4 MiB) | Max base64 size per attachment (≈ 3 MiB binary). The PWA downscales to ~500 KiB before sending, so the default has plenty of headroom. |
+| `MAX_ATTACHMENTS_PER_REQUEST` | `4` | Max number of attachments in one `/chat` request. |
 | `REQUEST_TIMEOUT` | `120` | Outbound request timeout to TARGET_URL (seconds). |
 | `ALLOWED_ORIGIN` | *(empty, blocked)* | Allowed CORS origin. |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Requests per IP per minute for `/chat`. |

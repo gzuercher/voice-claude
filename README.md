@@ -71,7 +71,8 @@ After installing the PWA on your home screen, open it:
 |---|---|
 | **Mic button (large)** | Tap to start recording. Tap again to send. |
 | **Transcript box** | Editable any time — tap to type, mix with voice freely. |
-| **Clear (✕)** | Wipes the transcript and returns to idle. |
+| **Camera (📷)** | Pick a photo from your library or take one — sent alongside (or instead of) text on the next tap. |
+| **Clear (✕)** | Wipes the transcript and any attached image, returns to idle. |
 | **Language (top left)** | Switch UI language. Persisted. |
 | **Speaker (header)** | Mute/unmute speech output. |
 | **Logout (header, 🚪)** | Sign out. Visible only when signed in. |

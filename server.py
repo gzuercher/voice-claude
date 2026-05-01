@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from auth import (
     AuthConfig,
@@ -55,6 +55,15 @@ REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", "120"))
 RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30"))
 AUTH_LOGIN_RATE_LIMIT_PER_MINUTE = int(
     os.environ.get("AUTH_LOGIN_RATE_LIMIT_PER_MINUTE", "10")
+)
+# Per-attachment cap on the base64 string. 4 MiB ≈ 3 MiB of binary payload —
+# generous for a phone photo downscaled to 1600px on the longest side
+# (~500 KiB JPEG at quality 0.85). Operators can raise it via env if needed.
+MAX_ATTACHMENT_BASE64_BYTES = int(
+    os.environ.get("MAX_ATTACHMENT_BASE64_BYTES", str(4 * 1024 * 1024))
+)
+MAX_ATTACHMENTS_PER_REQUEST = int(
+    os.environ.get("MAX_ATTACHMENTS_PER_REQUEST", "4")
 )
 TRUST_PROXY_HEADERS = os.environ.get("TRUST_PROXY_HEADERS", "0") == "1"
 
@@ -219,10 +228,59 @@ app.include_router(build_auth_router(_auth_config))
 verify_session = build_verify_session(_auth_config)
 
 
+_ALLOWED_ATTACHMENT_MIMES = frozenset({
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+})
+
+
+class Attachment(BaseModel):
+    """One inline attachment forwarded as base64 inside the chat payload.
+
+    Initial scope: images only (one-way, client → backend). The `kind`
+    field future-proofs for audio/file/etc.; backends may ignore unknown
+    kinds.
+    """
+    kind: str = Field("image", max_length=16)
+    mime: str = Field(..., max_length=64)
+    name: str = Field("", max_length=255)
+    data: str = Field(..., min_length=4)
+
+    @field_validator("mime")
+    @classmethod
+    def _mime_allowed(cls, v: str) -> str:
+        if v not in _ALLOWED_ATTACHMENT_MIMES:
+            allowed = sorted(_ALLOWED_ATTACHMENT_MIMES)
+            raise ValueError(f"mime {v!r} not allowed; expected one of {allowed}")
+        return v
+
+    @field_validator("data")
+    @classmethod
+    def _data_within_limit(cls, v: str) -> str:
+        if len(v) > MAX_ATTACHMENT_BASE64_BYTES:
+            raise ValueError(
+                f"attachment base64 length {len(v)} exceeds limit {MAX_ATTACHMENT_BASE64_BYTES}"
+            )
+        return v
+
+
 class ChatRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=MAX_PROMPT_LENGTH)
+    # text becomes optional when an attachment is present (e.g. just a
+    # photo). The endpoint enforces "at least one of text/attachments".
+    text: str = Field("", max_length=MAX_PROMPT_LENGTH)
     session_id: str = Field(..., pattern=r"^[A-Za-z0-9_-]{8,128}$")
     lang: str = Field("", max_length=16)
+    attachments: list[Attachment] = Field(default_factory=list)
+
+    @field_validator("attachments")
+    @classmethod
+    def _attachments_count(cls, v: list) -> list:
+        if len(v) > MAX_ATTACHMENTS_PER_REQUEST:
+            raise ValueError(
+                f"too many attachments: {len(v)} > {MAX_ATTACHMENTS_PER_REQUEST}"
+            )
+        return v
 
 
 @app.post("/debug-log")
@@ -301,11 +359,18 @@ async def chat(
     if not TARGET_URL:
         raise HTTPException(status_code=503, detail="No backend configured")
 
+    if not req.text and not req.attachments:
+        # Caught by Pydantic only collectively, not per-field. A bare empty
+        # request (no text, no images) makes no sense — reject loudly.
+        raise HTTPException(
+            status_code=422, detail="Either text or at least one attachment is required",
+        )
+
     ip = _client_ip(request)
     sid_short = req.session_id[:8]
     logger.info(
-        "[%s] chat ip=%s user=%s session=%s text_len=%d",
-        INSTANCE_NAME, ip, session.email, sid_short, len(req.text),
+        "[%s] chat ip=%s user=%s session=%s text_len=%d attachments=%d",
+        INSTANCE_NAME, ip, session.email, sid_short, len(req.text), len(req.attachments),
     )
 
     payload = {
@@ -317,6 +382,8 @@ async def chat(
             "instance": INSTANCE_NAME,
         },
     }
+    if req.attachments:
+        payload["attachments"] = [a.model_dump() for a in req.attachments]
     headers = {"Content-Type": "application/json"}
     if TARGET_TOKEN:
         headers["Authorization"] = f"Bearer {TARGET_TOKEN}"

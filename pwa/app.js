@@ -38,7 +38,8 @@
       helpBody: [
         '<strong>Aufnehmen:</strong> Tippe auf den großen Mikrofon-Knopf, sprich, dann nochmal tippen zum Senden.',
         '<strong>Tippen:</strong> Du kannst auch direkt ins Textfeld tippen, statt zu sprechen — oder beides mischen.',
-        '<strong>Löschen:</strong> Der ✕-Knopf neben dem Mikrofon leert den aktuellen Text und bricht eine laufende Aufnahme ab.',
+        '<strong>Bild senden:</strong> Mit dem 📷-Knopf kannst du ein Foto aus der Galerie wählen oder die Kamera öffnen. Es wird zusammen mit (oder anstelle von) Text mitgeschickt.',
+        '<strong>Löschen:</strong> Der ✕-Knopf neben dem Mikrofon leert den aktuellen Text und ein angehängtes Bild und bricht eine laufende Aufnahme ab.',
         '<strong>Sprachausgabe (TTS):</strong> Standardmäßig aus. Aktiviere sie im Menü, wenn du Antworten vorgelesen haben willst.',
         '<strong>Sprache:</strong> Wähle im Menü oben links zwischen Deutsch, Französisch, Italienisch, Englisch und Spanisch — beeinflusst Spracherkennung, Vorlesen und die App-Beschriftungen.',
         '<strong>Neues Gespräch:</strong> Der Knopf ganz unten startet eine neue Sitzung — das Backend kann das nutzen, um den Gesprächskontext zurückzusetzen.',
@@ -58,6 +59,10 @@
       transcriptReady: 'Bereit...',
       micAria: 'Aufnehmen und senden',
       clearAria: 'Text löschen',
+      cameraAria: 'Bild anhängen',
+      attachmentRemoveAria: 'Bild entfernen',
+      imageTooLarge: 'Bild zu groß. Bitte ein kleineres wählen.',
+      imageProcessFailed: 'Bild konnte nicht verarbeitet werden.',
       micRecord: 'Aufnehmen',
       micStop: 'Stop',
       micSend: 'Senden',
@@ -88,7 +93,8 @@
       helpBody: [
         "<strong>Enregistrer :</strong> appuyez sur le grand bouton micro, parlez, puis appuyez à nouveau pour envoyer.",
         '<strong>Saisir :</strong> vous pouvez aussi taper directement dans la zone de texte — ou mélanger voix et clavier.',
-        '<strong>Effacer :</strong> le bouton ✕ à côté du micro vide le texte courant et interrompt un enregistrement.',
+        "<strong>Envoyer une image :</strong> le bouton 📷 ouvre la galerie ou la caméra. L'image part avec (ou à la place du) texte au prochain envoi.",
+        '<strong>Effacer :</strong> le bouton ✕ à côté du micro vide le texte courant et toute image jointe, et interrompt un enregistrement.',
         '<strong>Synthèse vocale (TTS) :</strong> désactivée par défaut. Activez-la dans le menu pour entendre les réponses.',
         "<strong>Langue :</strong> dans le menu en haut à gauche, choisissez entre allemand, français, italien, anglais et espagnol — affecte reconnaissance, lecture vocale et libellés.",
         "<strong>Nouvelle conversation :</strong> le bouton tout en bas démarre une nouvelle session — le backend peut s'en servir pour réinitialiser le contexte.",
@@ -108,6 +114,10 @@
       transcriptReady: 'Prêt...',
       micAria: 'Enregistrer et envoyer',
       clearAria: 'Effacer le texte',
+      cameraAria: 'Joindre une image',
+      attachmentRemoveAria: "Supprimer l'image",
+      imageTooLarge: "Image trop grande. Choisissez-en une plus petite.",
+      imageProcessFailed: "Impossible de traiter l'image.",
       micRecord: 'Enregistrer',
       micStop: 'Arrêter',
       micSend: 'Envoyer',
@@ -138,7 +148,8 @@
       helpBody: [
         '<strong>Registrare:</strong> tocca il pulsante grande del microfono, parla, poi tocca di nuovo per inviare.',
         '<strong>Scrivere:</strong> puoi anche scrivere direttamente nel campo di testo — o mischiare voce e tastiera.',
-        '<strong>Cancellare:</strong> il pulsante ✕ accanto al microfono svuota il testo e interrompe la registrazione.',
+        '<strong>Inviare immagini:</strong> il pulsante 📷 apre la galleria o la fotocamera. Lʼimmagine parte insieme (o al posto) del testo al prossimo invio.',
+        '<strong>Cancellare:</strong> il pulsante ✕ accanto al microfono svuota il testo e qualsiasi immagine allegata, e interrompe la registrazione.',
         '<strong>Sintesi vocale (TTS):</strong> disattivata per impostazione predefinita. Attivala nel menu per ascoltare le risposte.',
         '<strong>Lingua:</strong> nel menu in alto a sinistra scegli tra tedesco, francese, italiano, inglese e spagnolo — riguarda riconoscimento, lettura e testi.',
         '<strong>Nuova conversazione:</strong> il pulsante in basso avvia una nuova sessione — il backend può usarlo per ripartire da zero.',
@@ -158,6 +169,10 @@
       transcriptReady: 'Pronto...',
       micAria: 'Registra e invia',
       clearAria: 'Cancella testo',
+      cameraAria: 'Allega immagine',
+      attachmentRemoveAria: 'Rimuovi immagine',
+      imageTooLarge: 'Immagine troppo grande. Scegline una più piccola.',
+      imageProcessFailed: "Impossibile elaborare l'immagine.",
       micRecord: 'Registra',
       micStop: 'Stop',
       micSend: 'Invia',
@@ -188,7 +203,8 @@
       helpBody: [
         '<strong>Recording:</strong> tap the large mic button, speak, then tap again to send.',
         '<strong>Typing:</strong> you can also type directly into the text box — or mix voice and keyboard.',
-        '<strong>Clearing:</strong> the ✕ button next to the mic empties the current text and aborts an ongoing recording.',
+        '<strong>Sending an image:</strong> the 📷 button opens your photo library or camera. The image is sent alongside (or instead of) text on the next tap.',
+        '<strong>Clearing:</strong> the ✕ button next to the mic empties the current text and any attached image, and aborts an ongoing recording.',
         '<strong>Voice output (TTS):</strong> off by default. Turn it on in the menu if you want answers read aloud.',
         '<strong>Language:</strong> the menu (top left) lets you switch between German, French, Italian, English and Spanish — affects recognition, read-aloud and labels.',
         '<strong>New conversation:</strong> the bottom button starts a new session — the backend can use that to reset context.',
@@ -208,6 +224,10 @@
       transcriptReady: 'Ready...',
       micAria: 'Record and send',
       clearAria: 'Clear text',
+      cameraAria: 'Attach image',
+      attachmentRemoveAria: 'Remove image',
+      imageTooLarge: 'Image too large. Please pick a smaller one.',
+      imageProcessFailed: 'Could not process the image.',
       micRecord: 'Record',
       micStop: 'Stop',
       micSend: 'Send',
@@ -238,7 +258,8 @@
       helpBody: [
         '<strong>Grabar:</strong> toca el gran botón de micrófono, habla y vuelve a tocar para enviar.',
         '<strong>Escribir:</strong> también puedes escribir directamente en el cuadro de texto — o mezclar voz y teclado.',
-        '<strong>Borrar:</strong> el botón ✕ junto al micrófono vacía el texto y aborta una grabación en curso.',
+        '<strong>Enviar imagen:</strong> el botón 📷 abre la galería o la cámara. La imagen se envía junto con (o en lugar de) texto al pulsar de nuevo.',
+        '<strong>Borrar:</strong> el botón ✕ junto al micrófono vacía el texto y cualquier imagen adjunta, y aborta una grabación en curso.',
         '<strong>Síntesis de voz (TTS):</strong> desactivada por defecto. Actívala en el menú para que las respuestas se lean en voz alta.',
         '<strong>Idioma:</strong> en el menú arriba a la izquierda elige entre alemán, francés, italiano, inglés y español — afecta reconocimiento, lectura y etiquetas.',
         '<strong>Nueva conversación:</strong> el botón inferior inicia una nueva sesión — el backend puede usarlo para reiniciar el contexto.',
@@ -258,6 +279,10 @@
       transcriptReady: 'Listo...',
       micAria: 'Grabar y enviar',
       clearAria: 'Borrar texto',
+      cameraAria: 'Adjuntar imagen',
+      attachmentRemoveAria: 'Quitar imagen',
+      imageTooLarge: 'Imagen demasiado grande. Elige una más pequeña.',
+      imageProcessFailed: 'No se pudo procesar la imagen.',
       micRecord: 'Grabar',
       micStop: 'Stop',
       micSend: 'Enviar',
@@ -328,6 +353,9 @@
   const langSelect = document.getElementById('langSelect');
   const newConvBtn = document.getElementById('newConvBtn');
   const discardBtn = document.getElementById('discardBtn');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const fileInput = document.getElementById('fileInput');
+  const attachmentChips = document.getElementById('attachmentChips');
   const menuBtn = document.getElementById('menuBtn');
   const menuOverlay = document.getElementById('menuOverlay');
   const menuDrawer = document.getElementById('menuDrawer');
@@ -548,6 +576,131 @@
 
   discardBtn.addEventListener('click', () => discardReview());
 
+  // ── Attachments (one-way, client → backend) ─────────────────────────
+  // Pending images for the next /chat send. Each entry mirrors the
+  // server-side Attachment model: {kind, mime, name, data, _previewUrl}.
+  // _previewUrl is a local object URL kept around for the chip thumbnail
+  // and revoked when the chip is removed (no leak).
+  const MAX_IMAGE_DIMENSION = 1600;
+  const IMAGE_QUALITY = 0.85;
+  // Server caps base64 length; pick a slightly tighter client limit so
+  // the user gets a friendly message instead of a 422.
+  const CLIENT_MAX_B64_BYTES = 3.8 * 1024 * 1024;
+  let pendingAttachments = [];
+
+  cameraBtn.addEventListener('click', () => {
+    if (cameraBtn.disabled) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = ''; // reset so the same file can be re-picked
+    if (!file) return;
+    cameraBtn.classList.add('busy');
+    try {
+      const att = await processImageFile(file);
+      pendingAttachments.push(att);
+      renderAttachmentChips();
+      // From idle, having an attachment means the next mic-tap should
+      // send (not start recording). Re-run setState to refresh labels.
+      if (state === 'idle') setState('idle');
+    } catch (err) {
+      alert(err && err.message ? err.message : t('imageProcessFailed'));
+    } finally {
+      cameraBtn.classList.remove('busy');
+    }
+  });
+
+  // Read + downscale + JPEG-encode the picked file. iOS HEIC inputs are
+  // decoded by the browser when drawn to canvas, so the output is always
+  // a uniform JPEG regardless of source format.
+  function processImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error(t('imageProcessFailed')));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error(t('imageProcessFailed')));
+        img.onload = () => {
+          try {
+            const { width, height } = fitWithin(img.naturalWidth, img.naturalHeight, MAX_IMAGE_DIMENSION);
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', IMAGE_QUALITY);
+            // dataUrl: "data:image/jpeg;base64,<...>"
+            const comma = dataUrl.indexOf(',');
+            const data = dataUrl.slice(comma + 1);
+            if (data.length > CLIENT_MAX_B64_BYTES) {
+              reject(new Error(t('imageTooLarge')));
+              return;
+            }
+            const previewUrl = URL.createObjectURL(new Blob(
+              [Uint8Array.from(atob(data), (c) => c.charCodeAt(0))],
+              { type: 'image/jpeg' },
+            ));
+            resolve({
+              kind: 'image',
+              mime: 'image/jpeg',
+              name: file.name || 'image.jpg',
+              data: data,
+              _previewUrl: previewUrl,
+            });
+          } catch (e) { reject(e); }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fitWithin(w, h, max) {
+    if (w <= max && h <= max) return { width: w, height: h };
+    const scale = Math.min(max / w, max / h);
+    return { width: Math.round(w * scale), height: Math.round(h * scale) };
+  }
+
+  function renderAttachmentChips() {
+    attachmentChips.innerHTML = '';
+    if (!pendingAttachments.length) {
+      attachmentChips.hidden = true;
+      return;
+    }
+    attachmentChips.hidden = false;
+    pendingAttachments.forEach((att, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'attachment-chip';
+      const img = document.createElement('img');
+      img.alt = att.name || '';
+      img.src = att._previewUrl;
+      const rm = document.createElement('button');
+      rm.className = 'attachment-chip-remove';
+      rm.type = 'button';
+      rm.textContent = '✕';
+      rm.setAttribute('aria-label', t('attachmentRemoveAria'));
+      rm.addEventListener('click', () => removeAttachment(idx));
+      chip.appendChild(img);
+      chip.appendChild(rm);
+      attachmentChips.appendChild(chip);
+    });
+  }
+
+  function removeAttachment(idx) {
+    const removed = pendingAttachments.splice(idx, 1)[0];
+    if (removed && removed._previewUrl) URL.revokeObjectURL(removed._previewUrl);
+    renderAttachmentChips();
+    if (state === 'idle') setState('idle');
+  }
+
+  function clearAttachments() {
+    pendingAttachments.forEach((a) => a._previewUrl && URL.revokeObjectURL(a._previewUrl));
+    pendingAttachments = [];
+    renderAttachmentChips();
+  }
+
+
   // Typing into the transcript box from idle or recording switches to
   // review. From idle we also wipe the placeholder ("Bereit...") so the
   // first keystroke does not append to it.
@@ -621,7 +774,14 @@
 
   function handleTap() {
     if (state === 'idle') {
-      startRecording();
+      // With a queued attachment but no transcript yet, the next tap
+      // should send the photo (possibly with empty text), not start a
+      // new recording. Mirrors the mic-label, which also shows "Senden".
+      if (pendingAttachments.length > 0) {
+        sendCurrent();
+      } else {
+        startRecording();
+      }
     } else if (state === 'recording') {
       enterReview();
     } else if (state === 'review') {
@@ -633,9 +793,13 @@
     dbg('state', { from: state, to: next });
     state = next;
     micBtn.classList.toggle('recording', next === 'recording');
+    const hasAttachments = pendingAttachments.length > 0;
     if (next === 'idle') {
-      micLabel.textContent = t('micRecord');
-      discardBtn.hidden = true;
+      // In idle, a queued attachment promotes the mic to "Send" and
+      // surfaces the discard button so the user can clear without
+      // starting a recording first.
+      micLabel.textContent = hasAttachments ? t('micSend') : t('micRecord');
+      discardBtn.hidden = !hasAttachments;
       updateTranscript('', false);
     } else if (next === 'recording') {
       micLabel.textContent = t('micStop');
@@ -802,32 +966,51 @@
     currentTranscript = '';
     sessionFinal = '';
     currentSessionText = '';
+    // The discard button now also represents "clear pending attachment".
+    clearAttachments();
     setState('idle');
     setStatus('');
   }
 
   async function sendCurrent() {
     const text = (transcriptBox.textContent || '').trim();
+    // Snapshot the attachments before resetting state so the network
+    // call uses the right list even after the UI clears.
+    const attachments = pendingAttachments.map((a) => ({
+      kind: a.kind, mime: a.mime, name: a.name, data: a.data,
+    }));
+    clearAttachments();
     setState('idle');
     currentTranscript = '';
     sessionFinal = '';
     currentSessionText = '';
-    if (!text) return;
-    await sendText(text);
+    if (!text && attachments.length === 0) return;
+    await sendText(text, attachments);
   }
 
-  async function sendText(text) {
-    addMessage('user', text);
+  async function sendText(text, attachments) {
+    attachments = attachments || [];
+    // Show the user bubble with the text plus a placeholder for any
+    // attached image. Bubbles do not render images today (one-way: we
+    // only forward them to the backend); the count makes the upload
+    // visible to the user.
+    const visible = text || (attachments.length
+      ? '🖼 (' + attachments.length + ')'
+      : '');
+    addMessage('user', visible);
 
     const typingDiv = addMessage('assistant', '');
     typingDiv.classList.add('typing');
     setStatus('sending');
 
+    const body = { text, session_id: sessionId, lang: activeLang() };
+    if (attachments.length) body.attachments = attachments;
+
     try {
       const res = await fetch('/chat', VoxGateAuth.withAuthHeaders({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, session_id: sessionId, lang: activeLang() })
+        body: JSON.stringify(body),
       }));
 
       if (res.status === 401) {

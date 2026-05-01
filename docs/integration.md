@@ -85,7 +85,15 @@ header is added. Outbound timeout is `REQUEST_TIMEOUT` seconds
   "metadata": {
     "lang":     "<BCP-47 tag the PWA was using, e.g. de-CH>",
     "instance": "<INSTANCE_NAME from VoxGate's .env>"
-  }
+  },
+  "attachments": [        // present only when the user attached files
+    {
+      "kind": "image",
+      "mime": "image/jpeg",
+      "name": "photo.jpg",
+      "data": "<base64-encoded bytes>"
+    }
+  ]
 }
 ```
 
@@ -93,14 +101,53 @@ Field semantics:
 
 | Field | Trust | Purpose |
 |---|---|---|
-| `user` | user-typed | Free text. Already validated for length (`MAX_PROMPT_LENGTH`, default 4000). |
+| `user` | user-typed | Free text. Validated for length (`MAX_PROMPT_LENGTH`, default 4000). May be empty if at least one attachment is present. |
 | `user_email` | **server-injected, verified** | Authenticated by Google + allowlisted by the operator. Backends can rely on this for ACL decisions and *should not* trust any client-provided e-mail field. |
 | `session_id` | client-generated | Opaque correlator. VoxGate keeps no state for it. The backend may use it as its own conversation key. |
 | `metadata.lang` | client-set | The UI language at the moment of sending. May differ from `INSTANCE_NAME`'s default. Hint, not a guarantee. |
 | `metadata.instance` | server-set | Useful when one backend serves multiple VoxGate instances (different families/contexts). |
+| `attachments` | user-uploaded, validated | Optional array. Omitted entirely when the user uploaded nothing — backends may branch on key presence. See "Attachments" below. |
 
 Backends may receive additional `metadata.*` fields in future versions.
 **Treat unknown fields as informational, do not reject them.**
+
+### Attachments (one-way, client → backend)
+
+The PWA can upload images alongside (or instead of) text. VoxGate is a
+**pure pass-through** for these — it validates size and mime, then
+forwards the base64 verbatim. VoxGate never decodes the bytes, never
+writes to disk, and has no shared volume with the backend. What the
+backend does with the bytes (write to a Docker volume, push to S3,
+inline into an LLM prompt as a vision input, …) is its own choice.
+
+Per-attachment validation done by VoxGate before forwarding:
+
+| Field | Constraint | Override env var |
+|---|---|---|
+| `kind` | string ≤ 16 chars (today only `"image"` is produced by the PWA, but backends should treat unknown kinds as informational) | — |
+| `mime` | one of `image/jpeg`, `image/png`, `image/webp` | — |
+| `name` | string ≤ 255 chars; may be empty | — |
+| `data` | base64 string ≤ `MAX_ATTACHMENT_BASE64_BYTES` (default 4 MiB ≈ 3 MiB binary) | `MAX_ATTACHMENT_BASE64_BYTES` |
+
+Per-request:
+
+| Constraint | Default | Override env var |
+|---|---|---|
+| Max attachments per request | 4 | `MAX_ATTACHMENTS_PER_REQUEST` |
+| `user` may be empty if attachments are present | — | — |
+| `user` + no attachments → 422 | — | — |
+
+The PWA currently downscales any picked photo to 1600px on the longest
+side and re-encodes as JPEG (quality 0.85), so a typical phone photo
+arrives at ~500 KiB regardless of source size or format (HEIC/PNG/etc.
+are decoded and re-encoded by the browser canvas). Photos beyond the
+client cap surface a friendly "image too large" message before any
+network call.
+
+**One-way today:** responses still match `{"response": "<text>"}`
+exactly. Backends do not return images via the `/chat` contract. If
+that becomes useful, it is a separate contract change with its own
+discussion.
 
 ## Response: backend → VoxGate
 
