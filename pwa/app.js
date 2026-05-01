@@ -540,10 +540,13 @@
     document.querySelectorAll('[data-i18n-aria]').forEach(el => {
       el.setAttribute('aria-label', t(el.dataset.i18nAria));
     });
+    // Keep the CSS placeholder in sync with the UI language. The actual
+    // placeholder is rendered by .transcript-box:empty::before reading
+    // this attribute — never written into textContent.
+    transcriptBox.setAttribute('data-placeholder', t('transcriptReady'));
     // Re-apply state-dependent labels.
     if (state === 'idle') {
       micLabel.textContent = t('micRecord');
-      transcriptBox.textContent = t('transcriptReady');
     } else if (state === 'recording') {
       micLabel.textContent = t('micStop');
     } else if (state === 'review') {
@@ -702,11 +705,10 @@
 
 
   // Typing into the transcript box from idle or recording switches to
-  // review. From idle we also wipe the placeholder ("Bereit...") so the
-  // first keystroke does not append to it.
+  // review. The placeholder lives in CSS (data-placeholder + :empty::before),
+  // so the first keystroke replaces it automatically.
   transcriptBox.addEventListener('beforeinput', () => {
     if (state === 'idle') {
-      transcriptBox.textContent = '';
       setState('review');
     } else if (state === 'recording') {
       stopRecognition();
@@ -746,7 +748,10 @@
   }
 
   function updateTranscript(text, active) {
-    transcriptBox.textContent = text || t('transcriptReady');
+    // Empty content is shown as a CSS-driven placeholder (see
+    // .transcript-box:empty::before); we never write the placeholder
+    // string into textContent so it can't be sent or appended to.
+    transcriptBox.textContent = text || '';
     transcriptBox.className = 'transcript-box' + (active ? ' active' : '');
   }
 
@@ -794,21 +799,20 @@
     state = next;
     micBtn.classList.toggle('recording', next === 'recording');
     const hasAttachments = pendingAttachments.length > 0;
+    // The discard button is always visible (next to the text field) so
+    // its position stays stable across states. Disable it when there is
+    // nothing to clear, otherwise the user gets a no-op tap.
     if (next === 'idle') {
-      // In idle, a queued attachment promotes the mic to "Send" and
-      // surfaces the discard button so the user can clear without
-      // starting a recording first.
       micLabel.textContent = hasAttachments ? t('micSend') : t('micRecord');
-      discardBtn.hidden = !hasAttachments;
       updateTranscript('', false);
     } else if (next === 'recording') {
       micLabel.textContent = t('micStop');
-      discardBtn.hidden = true;
     } else if (next === 'review') {
       micLabel.textContent = t('micSend');
       transcriptBox.classList.remove('active');
-      discardBtn.hidden = false;
     }
+    const hasText = (transcriptBox.textContent || '').trim().length > 0;
+    discardBtn.disabled = next === 'idle' && !hasAttachments && !hasText;
   }
 
   // Build the current session's text from a SpeechRecognitionResultList.

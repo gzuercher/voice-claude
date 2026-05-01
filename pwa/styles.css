@@ -13,8 +13,13 @@
       --accent-dim: rgba(122,155,184,0.12);
       --red: #c87070;
       --shadow: 0 0 0 transparent;
-      /* System font stacks; overridden per platform below. */
-      --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      /* Distinctive type pairing: Instrument Serif (italic) for the
+         wordmark — serifs evoke the spoken voice, italics carry motion.
+         Onest is a humanist sans designed as an Inter alternative with
+         more warmth; used for everything legible-by-the-user. Mono is
+         restricted to the debug overlay. */
+      --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+      --font-sans: 'Onest', system-ui, -apple-system, sans-serif;
       --font-mono: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
       /* Material Design "standard" easing as a neutral default. */
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -47,17 +52,16 @@
         --shadow: 0 1px 2px rgba(0,0,0,0.04);
       }
     }
+    /* Platform tokens: keep the platform-aware easing and corner radii so
+       the app still feels native on each OS, but do NOT override the font
+       stack — we want the Onest+Instrument Serif identity on every device,
+       not the system default. */
     [data-platform="ios"] {
-      --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
-      --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
-      /* iOS spring-ish easing, used in many UIKit transitions. */
       --ease: cubic-bezier(0.32, 0.72, 0, 1);
       --radius: 14px;
       --radius-sm: 10px;
     }
     [data-platform="android"] {
-      --font-sans: Roboto, 'Noto Sans', system-ui, sans-serif;
-      --font-mono: 'Roboto Mono', ui-monospace, monospace;
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
       --radius: 12px;
       --radius-sm: 6px;
@@ -68,7 +72,7 @@
       background: var(--bg);
       color: var(--text);
       font-family: var(--font-sans);
-      font-weight: 300;
+      font-weight: 400;
       -webkit-font-smoothing: antialiased;
       /* Honour the iOS system text-size setting (Accessibility) but stop
          iOS Safari from auto-inflating text on rotation, which combined
@@ -101,13 +105,11 @@
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
+      font-family: var(--font-sans);
+      font-size: 13px;
       padding: 6px 10px;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      text-transform: uppercase;
       -webkit-tap-highlight-color: transparent;
     }
     .header-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -162,23 +164,23 @@
       background: transparent;
       border: 1px solid var(--border);
       color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.12em;
+      font-family: var(--font-sans);
+      font-size: 13px;
       padding: 6px 14px;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      text-transform: uppercase;
       -webkit-tap-highlight-color: transparent;
     }
     .new-conv-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+    /* Wordmark: Instrument Serif italic. Keeps mixed case so any
+       per-instance name (e.g. "ZPlanner") still reads naturally. */
     .logo {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.15em;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 22px;
+      letter-spacing: 0;
       color: var(--accent);
-      text-transform: uppercase;
     }
 
     .logo-btn {
@@ -217,10 +219,9 @@
       gap: 14px;
     }
     .auth-card h2 {
-      font-family: var(--font-mono);
-      font-size: 14px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 24px;
       color: var(--accent);
       font-weight: 400;
     }
@@ -230,10 +231,8 @@
       line-height: 1.5;
     }
     .auth-label {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 12px;
       color: var(--muted);
       margin-top: 4px;
     }
@@ -243,8 +242,8 @@
       color: var(--text);
       padding: 10px 12px;
       border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 14px;
+      font-family: var(--font-sans);
+      font-size: 15px;
     }
     .auth-card input:focus {
       outline: none;
@@ -260,10 +259,9 @@
       border: none;
       padding: 12px;
       border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
       margin-top: 4px;
     }
@@ -292,10 +290,8 @@
       border: 1px solid var(--border);
       padding: 10px;
       border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 13px;
       cursor: pointer;
     }
     .auth-logout:active {
@@ -331,11 +327,9 @@
     .message.assistant { align-self: flex-start; }
 
     .message-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.1em;
+      font-family: var(--font-sans);
+      font-size: 12px;
       color: var(--muted);
-      text-transform: uppercase;
       margin-bottom: 5px;
     }
     .message.user .message-label { text-align: right; }
@@ -343,17 +337,19 @@
     .message-bubble {
       padding: 12px 16px;
       border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
       font-size: 15px;
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
     }
+    /* User bubble carries spoken text — render it as language, not as
+       code. Same body font as the assistant; only the tinted background
+       distinguishes it. */
     .message.user .message-bubble {
       background: var(--accent-dim);
       border: 1px solid var(--accent-dim);
       color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 13px;
     }
     .message.assistant .message-bubble {
       background: var(--surface);
@@ -371,24 +367,51 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.05em;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 22px;
     }
 
     .empty-hint {
-      font-size: 11px;
-      opacity: 0.6;
+      font-family: var(--font-sans);
+      font-style: normal;
+      font-size: 13px;
+      opacity: 0.7;
     }
 
+    /* Footer carries a soft accent halo behind the mic — gives the
+       primary action ambient depth without resorting to gradient-mesh
+       cliché. The halo is tinted by the per-instance accent. */
     footer {
+      position: relative;
       padding: 16px 20px 20px;
       border-top: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 12px;
+      background:
+        radial-gradient(ellipse 70% 80% at 50% 100%,
+          var(--accent-dim) 0%,
+          transparent 70%);
+    }
+
+    .transcript-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .transcript-row .transcript-box {
+      flex: 1;
+      min-width: 0;
+    }
+    .transcript-row .discard-btn {
+      width: 44px;
+      height: auto;
+      min-height: 44px;
+      flex: 0 0 auto;
+      font-size: 18px;
     }
 
     .transcript-box {
@@ -396,20 +419,27 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px 14px;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      color: var(--muted);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text);
       min-height: 44px;
       line-height: 1.5;
       transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
     }
+    /* Placeholder rendered purely via CSS so it never lands in textContent
+       and disappears automatically as soon as the user types a character.
+       The data-placeholder attribute is updated by applyLang() so it
+       follows the active UI language. */
+    .transcript-box:empty::before {
+      content: attr(data-placeholder);
+      color: var(--muted);
+      pointer-events: none;
+    }
     .transcript-box.active {
       border-color: var(--accent);
-      color: var(--text);
     }
     .transcript-box[contenteditable="true"] {
       border-color: var(--accent);
-      color: var(--text);
       cursor: text;
       outline: none;
       caret-color: var(--accent);
@@ -435,7 +465,7 @@
       border: 1px solid var(--border);
       color: var(--muted);
       font-size: 20px;
-      font-family: var(--font-mono);
+      font-family: var(--font-sans);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -493,18 +523,20 @@
     }
     .attachment-chip-remove:hover { background: var(--red); }
 
+    /* Mic button is the hero action — fill it with the per-instance
+       accent so it carries the page, instead of competing with every
+       other 1px-outlined element. Recording state inverts to a tinted
+       outline so the visual change is unambiguous. */
     .mic-btn {
       width: 100%;
       height: 64px;
-      border: none;
       border-radius: var(--radius-sm);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: var(--bg);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -513,6 +545,8 @@
       transition: all 0.15s var(--ease);
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      position: relative;
+      z-index: 1;
     }
     .mic-btn:active { transform: scale(0.97); }
     .mic-btn.recording {
@@ -599,10 +633,9 @@
       border-bottom: 1px solid var(--border);
     }
     .menu-title {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 22px;
       color: var(--accent);
       font-weight: 400;
     }
@@ -633,10 +666,8 @@
       min-height: 48px;
     }
     .menu-label {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 14px;
       color: var(--muted);
       flex: 1;
     }
@@ -646,8 +677,8 @@
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 12px;
+      font-family: var(--font-sans);
+      font-size: 14px;
       padding: 6px 22px 6px 10px;
       border-radius: var(--radius-sm);
       cursor: pointer;
@@ -701,12 +732,10 @@
       background: var(--bg);
     }
     .menu-toggle-state {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 13px;
       color: var(--muted);
-      min-width: 28px;
+      min-width: 32px;
     }
 
     /* Segmented control — used for the 3-way theme picker (Auto / Light /
@@ -722,11 +751,9 @@
       background: transparent;
       border: none;
       color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 6px 10px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      padding: 6px 12px;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
       border-right: 1px solid var(--border);
@@ -745,10 +772,8 @@
       background: transparent;
       border: none;
       color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-family: var(--font-sans);
+      font-size: 15px;
       padding: 14px 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -758,7 +783,8 @@
 
     .menu-footer {
       padding: 12px 20px 16px;
-      font-size: 11px;
+      font-family: var(--font-sans);
+      font-size: 12px;
       color: var(--muted);
       word-break: break-all;
       border-top: 1px solid var(--border);
@@ -799,10 +825,9 @@
       border-bottom: 1px solid var(--border);
     }
     .help-title {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 22px;
       color: var(--accent);
       font-weight: 400;
     }
