@@ -149,34 +149,51 @@ class TestConfigEndpoint:
 
 
 # -----------------------------------------------------------------------------
-# /backend-contract — live documentation
+# /integration — single live discovery URL (endpoint map + backend contract)
 # -----------------------------------------------------------------------------
 
 
-class TestBackendContractEndpoint:
-    """Integrators implementing TARGET_URL can curl this URL to get the
-    canonical contract without checking out the repo."""
+class TestIntegrationEndpoint:
+    """One URL backend integrators (and operators) can curl to learn the
+    full HTTP surface and the backend contract — no repo checkout needed."""
 
     def test_served_as_markdown(self):
         client = _reload_app(login=False)
-        res = client.get("/backend-contract")
+        res = client.get("/integration")
         assert res.status_code == 200
         assert res.headers["content-type"].startswith("text/markdown")
 
+    def test_unauthenticated_access(self):
+        client = _reload_app(login=False)
+        # Public on purpose; do not require auth.
+        assert client.get("/integration").status_code == 200
+
     def test_describes_request_and_response_shape(self):
         client = _reload_app(login=False)
-        body = client.get("/backend-contract").text
+        body = client.get("/integration").text
         # Cheap sanity: every contract field must appear by name.
         for token in (
             "user_email", "session_id", "metadata", '"response"',
             "TARGET_URL", "TARGET_TOKEN", "502",
         ):
-            assert token in body, f"missing {token!r} in /backend-contract"
+            assert token in body, f"missing {token!r} in /integration"
 
-    def test_unauthenticated_access(self):
+    def test_lists_every_runtime_endpoint(self):
+        # The endpoint map is the load-bearing reason this page exists —
+        # if a new endpoint ships, it must be added here too.
         client = _reload_app(login=False)
-        # Public on purpose; do not require auth.
-        assert client.get("/backend-contract").status_code == 200
+        body = client.get("/integration").text
+        for path in (
+            "/integration", "/config", "/openapi.json", "/docs", "/redoc",
+            "/chat", "/auth/login/{provider}", "/auth/logout", "/auth/me",
+            "/auth/providers", "/debug-log",
+        ):
+            assert path in body, f"endpoint map missing {path!r}"
+
+    def test_backend_contract_path_is_dropped(self):
+        # Hard guarantee that nobody accidentally lands on the old path.
+        client = _reload_app(login=False)
+        assert client.get("/backend-contract").status_code == 404
 
 
 # -----------------------------------------------------------------------------

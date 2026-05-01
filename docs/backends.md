@@ -2,7 +2,7 @@
 
 VoxGate has one chat endpoint, `/chat`. Every authenticated request is
 forwarded to `TARGET_URL` using the strict JSON contract documented in
-[`backend-contract.md`](backend-contract.md). Read that first — this
+[`integration.md`](integration.md). Read that first — this
 file shows minimal implementations that fulfil the contract.
 
 What VoxGate sends:

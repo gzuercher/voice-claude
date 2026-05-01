@@ -9,7 +9,7 @@ item should be answerable with yes/no without reading source code.
       Google Cloud Console. Without it, login is disabled and every
       request to `/chat` is rejected.
 - [ ] **`TARGET_URL` is set** and points at a backend that speaks the
-      contract in [`backend-contract.md`](backend-contract.md). Without
+      contract in [`integration.md`](integration.md). Without
       it, every authenticated `/chat` request returns `503`.
 - [ ] **`ALLOWED_EMAILS` lists every permitted user explicitly.**
       Adding/removing an entry takes effect on the next request — no

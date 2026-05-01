@@ -33,7 +33,7 @@ app = FastAPI()
 # VoxGate is a pure forwarding proxy: every authenticated /chat request is
 # enriched with the verified user e-mail and POSTed to TARGET_URL. The backend
 # at TARGET_URL owns all LLM logic, system prompts, history and routing. See
-# docs/backend-contract.md for the request/response schema.
+# docs/integration.md for the request/response schema.
 TARGET_URL = os.environ.get("TARGET_URL", "").strip()
 TARGET_TOKEN = os.environ.get("TARGET_TOKEN", "")
 INSTANCE_NAME = os.environ.get("INSTANCE_NAME", "VoxGate")
@@ -250,22 +250,22 @@ async def debug_log(request: Request):
     return JSONResponse(status_code=204, content=None)
 
 
-@app.get("/backend-contract")
-async def backend_contract():
-    """Serve docs/backend-contract.md live so integrators implementing
-    TARGET_URL can curl the canonical contract without checking out the
-    repo. Public, no auth — the contract is not a secret. The Dockerfile
-    copies the file to /app/backend-contract.md at build time so doc
-    changes ship with the image.
+@app.get("/integration")
+async def integration():
+    """Serve docs/integration.md live so integrators have one URL that
+    lists every endpoint and pins the backend contract for TARGET_URL.
+    Public, no auth — none of this is secret. The Dockerfile copies the
+    file to /app/integration.md at build time so doc changes ship with
+    the image; in a checkout `make run` falls back to docs/integration.md.
     """
     candidates = [
-        pathlib.Path(__file__).resolve().parent / "backend-contract.md",
-        pathlib.Path(__file__).resolve().parent / "docs" / "backend-contract.md",
+        pathlib.Path(__file__).resolve().parent / "integration.md",
+        pathlib.Path(__file__).resolve().parent / "docs" / "integration.md",
     ]
     for path in candidates:
         if path.is_file():
             return PlainTextResponse(path.read_text(encoding="utf-8"), media_type="text/markdown")
-    raise HTTPException(status_code=404, detail="Backend contract document not bundled")
+    raise HTTPException(status_code=404, detail="Integration document not bundled")
 
 
 @app.get("/config")
@@ -291,7 +291,7 @@ async def chat(
 ):
     """Forward an authenticated chat turn to the configured backend.
 
-    Contract — see docs/backend-contract.md for the full version.
+    Contract — see docs/integration.md for the full version.
         Outbound (VoxGate → TARGET_URL):
             { "user": str, "user_email": str, "session_id": str,
               "metadata": { "lang": str, "instance": str } }

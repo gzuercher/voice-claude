@@ -51,7 +51,7 @@ In addition:
 4. Add tests in `tests/test_server.py` — at minimum: happy path, validation errors, auth errors (no session, missing CSRF), backend errors.
 5. Document the endpoint in `README.md` under "API reference".
 6. If a new env variable is introduced: extend `.env.example`, `deploy/caddy/.env.example`, and the configuration table in `docs/setup.md`.
-7. If the change affects the `/chat` → TARGET_URL forwarding contract, update `docs/backend-contract.md` *first* — that file is the source of truth for backend implementers.
+7. If the change affects the `/chat` → TARGET_URL forwarding contract, update `docs/integration.md` *first* — that file is the source of truth for backend implementers.
 
 ## Working with Claude Code
 

@@ -45,5 +45,5 @@ Open `https://voxgate.example.com` in the browser. The PWA shows a
 
 - All env vars: [`../../docs/setup.md`](../../docs/setup.md)
 - Security checklist: [`../../docs/security.md`](../../docs/security.md)
-- Backend JSON contract: [`../../docs/backend-contract.md`](../../docs/backend-contract.md)
+- Backend JSON contract: [`../../docs/integration.md`](../../docs/integration.md)
 - Example backend implementations: [`../../docs/backends.md`](../../docs/backends.md)

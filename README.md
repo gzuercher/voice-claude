@@ -35,7 +35,7 @@ The selectable list is configurable via `SPEECH_LANGS` (see
 ### A) Voice-frontend on your own (sub-)domain
 
 Recommended path. You need a subdomain pointing at your server and a
-backend that speaks the [contract](docs/backend-contract.md).
+backend that speaks the [contract](docs/integration.md).
 
 ```bash
 git clone git@github.com:gzuercher/vox-gate.git
@@ -136,7 +136,7 @@ Access, Tailscale-only access) is independently possible — see
 | `401` error | Session expired or missing. The PWA shows the Google Sign-In screen automatically. |
 | `403` error | Your Google account is not in `ALLOWED_EMAILS` (ask the operator) or your session was revoked. |
 | `429` error | Rate limit hit. Wait and retry. |
-| `502` on `/chat` | Backend at TARGET_URL returned an error, was unreachable, or violated the response contract (see `docs/backend-contract.md`). |
+| `502` on `/chat` | Backend at TARGET_URL returned an error, was unreachable, or violated the response contract (see `docs/integration.md`). |
 | `503` on `/chat` | TARGET_URL is not configured. |
 | Doesn't work on Safari/iOS | Web Speech API is limited there; use Chrome. |
 
@@ -146,7 +146,7 @@ The rest is reference material for developers and clients calling the
 HTTP API. For installation/operation see [`docs/setup.md`](docs/setup.md).
 For the security checklist see [`docs/security.md`](docs/security.md).
 For the backend JSON contract see
-[`docs/backend-contract.md`](docs/backend-contract.md). For backend
+[`docs/integration.md`](docs/integration.md). For backend
 examples see [`docs/backends.md`](docs/backends.md). For contributing
 see [`docs/contributing.md`](docs/contributing.md). For where the
 project might go next see [`docs/roadmap.md`](docs/roadmap.md).
@@ -174,7 +174,7 @@ VoxGate exposes a single chat endpoint:
 
 - **`POST /chat`** — authenticated request. VoxGate enriches with the
   verified user e-mail and forwards to `TARGET_URL`. Strict response
-  contract (see `docs/backend-contract.md`).
+  contract (see `docs/integration.md`).
 
 ## API reference
 
@@ -186,11 +186,11 @@ All authenticated endpoints require:
 The PWA handles both transparently. For programmatic access, log in
 through `POST /auth/login/google` first and reuse the cookie jar.
 
-### `GET /backend-contract`
+### `GET /integration`
 
-Public, no auth. Serves `docs/backend-contract.md` as `text/markdown`.
+Public, no auth. Serves `docs/integration.md` as `text/markdown`.
 Useful for backend integrators: they can `curl
-https://<your-voxgate-host>/backend-contract` to get the contract
+https://<your-voxgate-host>/integration` to get the contract
 their target instance ships with, instead of guessing from the repo
 version.
 
@@ -223,7 +223,7 @@ VoxGate forwards to `TARGET_URL` with this payload:
 The backend **must** respond with `{"response": "<text>"}` exactly.
 Anything else (missing key, wrong type, non-JSON, plain text) is a
 contract violation and surfaces as a `502` to the PWA. Full reference:
-[`docs/backend-contract.md`](docs/backend-contract.md).
+[`docs/integration.md`](docs/integration.md).
 
 ### `GET /config`
 
@@ -275,7 +275,7 @@ voxgate/
 │   ├── setup.md             # Installation and operation
 │   ├── security.md          # Operator checklist
 │   ├── contributing.md      # Development workflow
-│   ├── backend-contract.md  # /chat → TARGET_URL JSON schema (strict)
+│   ├── integration.md  # /chat → TARGET_URL JSON schema (strict)
 │   ├── backends.md          # Example backend implementations
 │   ├── roadmap.md           # Future-development ideas
 │   └── lessons.md           # Lessons learned

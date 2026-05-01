@@ -5,7 +5,7 @@ Installation, configuration, and operation. For what VoxGate *does* see
 [`contributing.md`](contributing.md). For the operator security
 checklist see [`security.md`](security.md). For the JSON contract
 between VoxGate and your backend see
-[`backend-contract.md`](backend-contract.md). For example backend
+[`integration.md`](integration.md). For example backend
 implementations see [`backends.md`](backends.md).
 
 ## Which variant?
@@ -86,13 +86,13 @@ domain to **Authorized JavaScript origins**.
 
 | Variable | Description |
 |---|---|
-| `TARGET_URL` | URL of the chat backend. VoxGate POSTs the strict JSON contract here for every authenticated `/chat` request. Without it, `/chat` returns `503`. See [`backend-contract.md`](backend-contract.md). |
+| `TARGET_URL` | URL of the chat backend. VoxGate POSTs the strict JSON contract here for every authenticated `/chat` request. Without it, `/chat` returns `503`. See [`integration.md`](integration.md). |
 | `TARGET_TOKEN` | Optional bearer token added as `Authorization: Bearer <token>` on the forwarded request. Leave empty if the backend needs no auth. |
 
 VoxGate has no built-in LLM client. If you want voice-to-Claude (or
 voice-to-OpenAI, voice-to-anything), run a small adapter container
 that exposes a single endpoint speaking the
-[backend contract](backend-contract.md) and forwards on to the model
+[backend contract](integration.md) and forwards on to the model
 provider.
 
 ### Branding
@@ -347,7 +347,7 @@ For multiple instances, copy the unit (`voxgate-planner.service`,
 
 ## Custom backend for `/chat`
 
-Backend contract (strict): [`backend-contract.md`](backend-contract.md).
+Backend contract (strict): [`integration.md`](integration.md).
 Example implementations (Python/FastAPI, Node/Express, bash stub,
 adapter to Anthropic): [`backends.md`](backends.md).
 

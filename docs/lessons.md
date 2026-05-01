@@ -15,7 +15,7 @@ Format: `- [YYYY-MM-DD]: [What was wrong] → [Correct approach]`
   VoxGate is now a **pure voice-frontend with auth gate**. No
   built-in LLM client, single `/chat` endpoint, strict JSON contract
   to TARGET_URL. Anyone wanting voice-to-Claude runs a small adapter
-  container behind TARGET_URL. See `docs/backend-contract.md`.
+  container behind TARGET_URL. See `docs/integration.md`.
 
 - [2026-04-30]: Dockerfile mirrored Python deps from `pyproject.toml`
   by hand, drifted twice in one week (auth/ + google-auth[requests] +

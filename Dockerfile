@@ -16,9 +16,10 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install .
 # the install above.
 COPY pwa/ pwa/
 
-# The backend contract markdown is served live at /backend-contract so
-# integrators can curl it without checking out the repo.
-COPY docs/backend-contract.md ./backend-contract.md
+# The integration reference (endpoint map + backend contract) is served
+# live at /integration so integrators can curl it without checking out
+# the repo.
+COPY docs/integration.md ./integration.md
 
 EXPOSE 8000
 
