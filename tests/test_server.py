@@ -574,6 +574,84 @@ class TestSelftestEndpoint:
         headers = res.json()["request"]["headers"]
         assert "Authorization" not in headers
 
+    def test_target_token_actually_transmitted(self, monkeypatch):
+        # Redaction (above) is not enough — we also need to assert that
+        # the *real* token reaches the backend. Otherwise we might mask
+        # ourselves into silently sending the placeholder.
+        monkeypatch.setenv("TARGET_TOKEN", "real-shared-secret-xyz")
+        client = _reload_app()
+        cm, captured = _mock_backend({"response": "ok"})
+        with cm:
+            client.post("/selftest")
+        sent_auth = captured["headers"].get("Authorization")
+        assert sent_auth == "Bearer real-shared-secret-xyz"
+
+    def test_primitive_root_reports_at_object_check(self):
+        # Backend returned a bare JSON string instead of an object.
+        client = _reload_app()
+        cm, _ = _mock_backend(json_body="just a string", status_code=200)
+        with cm:
+            res = client.post("/selftest")
+        body = res.json()
+        assert body["ok"] is False
+        failed = next(c for c in body["checks"] if not c["ok"])
+        assert failed["name"] == "response_is_object"
+        assert "str" in failed["detail"]
+
+    def test_response_is_explicit_null_reports_at_field_check(self):
+        # Key present but value null — caught by the same check as missing.
+        client = _reload_app()
+        cm, _ = _mock_backend({"response": None})
+        with cm:
+            res = client.post("/selftest")
+        body = res.json()
+        failed = next(c for c in body["checks"] if not c["ok"])
+        assert failed["name"] == "response_field_string"
+        assert "NoneType" in failed["detail"]
+
+    def test_diagnostic_envelope_invariant(self, monkeypatch):
+        # Every response — pass or fail, early or late — keeps the same
+        # top-level shape. Saves frontend/script consumers from defensive
+        # branching.
+        monkeypatch.setenv("TARGET_URL", "")
+        client = _reload_app()
+        early_failure = client.post("/selftest").json()
+        for key in ("ok", "checks", "request", "response"):
+            assert key in early_failure, f"{key} missing on early failure"
+
+        client2 = _reload_app()
+        cm, _ = _mock_backend({"response": "ok"})
+        with cm:
+            success = client2.post("/selftest").json()
+        for key in ("ok", "checks", "request", "response"):
+            assert key in success, f"{key} missing on success"
+
+    def test_subject_to_chat_rate_limit(self, monkeypatch):
+        # /selftest must share /chat's bucket — otherwise it could be
+        # used to bypass rate limiting and flood the backend.
+        monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "3")
+        client = _reload_app()
+        cm, _ = _mock_backend({"response": "ok"})
+        with cm:
+            for _ in range(3):
+                assert client.post("/selftest").status_code == 200
+            res = client.post("/selftest")
+        assert res.status_code == 429
+
+    def test_chat_and_selftest_share_one_bucket(self, monkeypatch):
+        # Two /selftest + two /chat = 4 → exceeds limit 3 = 429 on the
+        # last one regardless of which endpoint we hit.
+        monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "3")
+        client = _reload_app()
+        cm, _ = _mock_backend({"response": "ok"})
+        chat_body = {"text": "hi", "session_id": GOOD_SID}
+        with cm:
+            assert client.post("/selftest").status_code == 200
+            assert client.post("/chat", json=chat_body).status_code == 200
+            assert client.post("/selftest").status_code == 200
+            res = client.post("/chat", json=chat_body)
+        assert res.status_code == 429
+
 
 # -----------------------------------------------------------------------------
 # Auth + session
