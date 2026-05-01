@@ -8,7 +8,8 @@ globs: "*.py,*.html,*.js,*.json"
 ## Tech stack
 - **Backend:** Python 3.10+, FastAPI, Uvicorn, httpx
 - **Frontend:** Vanilla HTML/CSS/JS (no build step)
-- **Speech:** Web Speech API (`de-CH`, `fr-CH`)
+- **Speech:** Web Speech API. Default selectable list:
+  `de-CH, fr-CH, it-CH, en-US, es-ES`. Configurable via `SPEECH_LANGS`.
 - **Reverse proxy:** Caddy (production; bundled in `deploy/caddy/`)
 
 ## Build & run

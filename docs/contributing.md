@@ -24,10 +24,10 @@ make check        # lint + tests
 
 The binding rules live in `.claude/rules/` and apply to both human contributors and Claude Code:
 
-- [`../.claude/rules/security.md`](../.claude/rules/security.md) — no secrets in code, Google Sign-In with allowlist, validate inputs.
-- [`../.claude/rules/code-quality.md`](../.claude/rules/code-quality.md) — strict typing, no empty `catch` blocks, components under 200 lines.
-- [`../.claude/rules/accessibility.md`](../.claude/rules/accessibility.md) — semantic HTML, ARIA, keyboard navigation, color contrast (WCAG AA).
-- [`../.claude/rules/dev-stack.md`](../.claude/rules/dev-stack.md) — tech stack and verification rules.
+- [`../.claude/rules/security.md`](../.claude/rules/security.md) — auth boundary, allowlist re-check on every request, no secrets in code, no `innerHTML` with user data.
+- [`../.claude/rules/code-quality.md`](../.claude/rules/code-quality.md) — type hints + Pydantic at the boundary, mockable httpx, no `eval`/`innerHTML` on the frontend.
+- [`../.claude/rules/accessibility.md`](../.claude/rules/accessibility.md) — semantic HTML, ARIA via `data-i18n-aria`, keyboard navigation, WCAG AA contrast.
+- [`../.claude/rules/dev-stack.md`](../.claude/rules/dev-stack.md) — tech stack, build commands, verification.
 
 In addition:
 
