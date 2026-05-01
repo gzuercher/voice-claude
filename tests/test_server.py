@@ -894,8 +894,39 @@ class TestStaticFiles:
         client = _reload_app(login=False)
         js = client.get("/app.js").text
         for key in ("menuTitle", "menuLanguage", "menuTTS", "menuHelp",
-                    "ttsOn", "ttsOff", "helpTitle", "helpBody"):
+                    "ttsOn", "ttsOff", "helpTitle", "helpBody",
+                    "menuTheme", "themeAuto", "themeLight", "themeDark"):
             assert key + ":" in js, f"i18n key {key!r} missing from app.js"
+
+    def test_theme_bootstrap_loaded_synchronously(self):
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        # Must come before app.js so [data-theme] is set pre-CSS-parsing —
+        # otherwise the page flashes the dark default before switching.
+        theme_pos = html.find('"theme.js"')
+        app_pos = html.find('"app.js"')
+        assert theme_pos > 0, "theme.js not referenced"
+        assert theme_pos < app_pos, "theme.js must load before app.js"
+
+    def test_theme_segment_present_in_index(self):
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        assert 'id="themeSegment"' in html
+        for value in ("auto", "light", "dark"):
+            assert f'data-theme-value="{value}"' in html
+
+    def test_theme_js_served(self):
+        client = _reload_app(login=False)
+        res = client.get("/theme.js")
+        assert res.status_code == 200
+        # Sanity: it sets the data-theme attribute.
+        assert "dataset.theme" in res.text
+
+    def test_styles_carry_light_theme_overrides(self):
+        client = _reload_app(login=False)
+        css = client.get("/styles.css").text
+        assert '[data-theme="light"]' in css
+        assert "prefers-color-scheme: light" in css
 
 
 class TestSecurityHeaders:

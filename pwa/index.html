@@ -14,6 +14,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg">
   <script src="platform.js"></script>
+  <script src="theme.js"></script>
   <script src="debug.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="stylesheet" href="styles.css">
@@ -42,6 +43,14 @@
     <li class="menu-item menu-item--row">
       <label class="menu-label" data-i18n="menuLanguage" for="langSelect">Sprache</label>
       <select class="menu-select" id="langSelect" data-i18n-aria="headerToggleLang" aria-label="Sprache wählen"></select>
+    </li>
+    <li class="menu-item menu-item--row">
+      <span class="menu-label" data-i18n="menuTheme">Erscheinungsbild</span>
+      <div class="menu-segment" id="themeSegment" role="radiogroup" data-i18n-aria="menuThemeAria" aria-label="Erscheinungsbild wählen">
+        <button class="menu-segment-btn" type="button" data-theme-value="auto" role="radio" aria-checked="true" data-i18n="themeAuto" data-i18n-aria="themeAuto">Auto</button>
+        <button class="menu-segment-btn" type="button" data-theme-value="light" role="radio" aria-checked="false" data-i18n-aria="themeLight" aria-label="Hell">☀</button>
+        <button class="menu-segment-btn" type="button" data-theme-value="dark" role="radio" aria-checked="false" data-i18n-aria="themeDark" aria-label="Dunkel">☾</button>
+      </div>
     </li>
     <li class="menu-item menu-item--row">
       <label class="menu-label" data-i18n="menuTTS" for="ttsToggle">Sprachausgabe</label>

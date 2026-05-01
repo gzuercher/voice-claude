@@ -25,6 +25,11 @@
       menuLanguage: 'Sprache',
       menuTTS: 'Sprachausgabe',
       menuTTSToggle: 'Sprachausgabe umschalten',
+      menuTheme: 'Erscheinungsbild',
+      menuThemeAria: 'Erscheinungsbild wählen',
+      themeAuto: 'Auto',
+      themeLight: 'Hell',
+      themeDark: 'Dunkel',
       menuHelp: 'Hilfe',
       ttsOn: 'Ein',
       ttsOff: 'Aus',
@@ -70,6 +75,11 @@
       menuLanguage: 'Langue',
       menuTTS: 'Synthèse vocale',
       menuTTSToggle: 'Activer/désactiver la synthèse',
+      menuTheme: 'Apparence',
+      menuThemeAria: "Choisir l'apparence",
+      themeAuto: 'Auto',
+      themeLight: 'Clair',
+      themeDark: 'Sombre',
       menuHelp: 'Aide',
       ttsOn: 'On',
       ttsOff: 'Off',
@@ -115,6 +125,11 @@
       menuLanguage: 'Lingua',
       menuTTS: 'Sintesi vocale',
       menuTTSToggle: 'Attiva/disattiva sintesi',
+      menuTheme: 'Aspetto',
+      menuThemeAria: "Scegli l'aspetto",
+      themeAuto: 'Auto',
+      themeLight: 'Chiaro',
+      themeDark: 'Scuro',
       menuHelp: 'Aiuto',
       ttsOn: 'On',
       ttsOff: 'Off',
@@ -160,6 +175,11 @@
       menuLanguage: 'Language',
       menuTTS: 'Voice output',
       menuTTSToggle: 'Toggle voice output',
+      menuTheme: 'Appearance',
+      menuThemeAria: 'Choose appearance',
+      themeAuto: 'Auto',
+      themeLight: 'Light',
+      themeDark: 'Dark',
       menuHelp: 'Help',
       ttsOn: 'On',
       ttsOff: 'Off',
@@ -205,6 +225,11 @@
       menuLanguage: 'Idioma',
       menuTTS: 'Síntesis de voz',
       menuTTSToggle: 'Activar/desactivar síntesis',
+      menuTheme: 'Apariencia',
+      menuThemeAria: 'Elegir apariencia',
+      themeAuto: 'Auto',
+      themeLight: 'Claro',
+      themeDark: 'Oscuro',
       menuHelp: 'Ayuda',
       ttsOn: 'On',
       ttsOff: 'Off',
@@ -378,6 +403,57 @@
     if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
     updateTtsToggleUI();
   });
+
+  // ── Theme: 3-way (auto / light / dark) ──────────────────────────────
+  // Initial value already applied to <html data-theme="..."> by theme.js
+  // (synchronous, in <head>) to avoid flash-of-wrong-theme. Here we
+  // just wire the menu segment and persist user changes.
+  const themeSegment = document.getElementById('themeSegment');
+  const themeBtns = themeSegment.querySelectorAll('[data-theme-value]');
+  // Match the OS-aware accent for the browser-chrome / status-bar tint.
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  const _osLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+
+  function effectiveThemeIsLight(choice) {
+    if (choice === 'light') return true;
+    if (choice === 'dark') return false;
+    return !!(_osLight && _osLight.matches);
+  }
+
+  function applyTheme(choice) {
+    if (choice !== 'auto' && choice !== 'light' && choice !== 'dark') {
+      choice = 'auto';
+    }
+    document.documentElement.dataset.theme = choice;
+    themeBtns.forEach((b) => {
+      b.setAttribute('aria-checked', b.dataset.themeValue === choice ? 'true' : 'false');
+    });
+    if (themeColorMeta) {
+      themeColorMeta.content = effectiveThemeIsLight(choice) ? '#f7f7f8' : '#0a0a0a';
+    }
+  }
+
+  themeBtns.forEach((b) => {
+    b.addEventListener('click', () => {
+      const next = b.dataset.themeValue;
+      try { localStorage.setItem('voxTheme', next); } catch (_) {}
+      applyTheme(next);
+    });
+  });
+
+  // When the user picks "auto", react to OS preference flips at runtime
+  // (they may toggle dark mode in Settings while the app is open).
+  if (_osLight && _osLight.addEventListener) {
+    _osLight.addEventListener('change', () => {
+      if (document.documentElement.dataset.theme === 'auto') {
+        applyTheme('auto');  // re-tint the meta theme-color
+      }
+    });
+  }
+
+  // Read whatever theme.js already applied (or default to "auto") and
+  // ensure the segment + meta are in sync.
+  applyTheme(document.documentElement.dataset.theme || 'auto');
 
   // Esc closes whichever overlay is on top.
   document.addEventListener('keydown', (e) => {
