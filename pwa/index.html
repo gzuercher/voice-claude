@@ -2,9 +2,13 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- maximum-scale=1 prevents the iOS-PWA "renders zoomed-in by default"
+       bug. Users can still adjust system text size via iOS Settings →
+       Accessibility, which we honour via -webkit-text-size-adjust:100%. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a0a0a">
   <title>VoxGate</title>
   <link rel="manifest" href="manifest.json">
@@ -17,14 +21,54 @@
 <body>
 
 <header>
-  <select class="header-btn header-select" id="langSelect" data-i18n-aria="headerToggleLang" aria-label="Sprache wählen"></select>
+  <button class="header-btn header-icon-btn" id="menuBtn" data-i18n-aria="headerMenu" aria-label="Menü öffnen" aria-haspopup="true" aria-expanded="false">
+    <span class="hamburger" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </span>
+  </button>
   <div class="header-center">
     <button class="logo logo-btn" id="logo" data-i18n-aria="headerToggleAuth" aria-label="Konto wechseln">VoxGate</button>
   </div>
-  <button class="header-btn" id="muteBtn" data-i18n-aria="headerToggleMute" aria-label="Sprachausgabe stummschalten">🔊</button>
-  <button class="header-btn" id="headerLogoutBtn" data-i18n-aria="logout" aria-label="Abmelden" hidden>🚪</button>
   <div class="status-dot" id="statusDot"></div>
 </header>
+
+<div class="menu-overlay" id="menuOverlay" hidden></div>
+<aside class="menu-drawer" id="menuDrawer" hidden aria-hidden="true" role="dialog" aria-labelledby="menuTitle">
+  <div class="menu-header">
+    <h2 class="menu-title" id="menuTitle" data-i18n="menuTitle">Einstellungen</h2>
+    <button class="menu-close" id="menuCloseBtn" data-i18n-aria="menuClose" aria-label="Menü schließen">✕</button>
+  </div>
+  <ul class="menu-list">
+    <li class="menu-item menu-item--row">
+      <label class="menu-label" data-i18n="menuLanguage" for="langSelect">Sprache</label>
+      <select class="menu-select" id="langSelect" data-i18n-aria="headerToggleLang" aria-label="Sprache wählen"></select>
+    </li>
+    <li class="menu-item menu-item--row">
+      <label class="menu-label" data-i18n="menuTTS" for="ttsToggle">Sprachausgabe</label>
+      <button class="menu-toggle" id="ttsToggle" type="button" role="switch" aria-checked="false" data-i18n-aria="menuTTSToggle" aria-label="Sprachausgabe umschalten">
+        <span class="menu-toggle-track"><span class="menu-toggle-thumb"></span></span>
+        <span class="menu-toggle-state" id="ttsToggleState" data-i18n="ttsOff">Aus</span>
+      </button>
+    </li>
+    <li class="menu-item">
+      <button class="menu-action" id="menuHelpBtn" type="button" data-i18n="menuHelp">Hilfe</button>
+    </li>
+    <li class="menu-item">
+      <button class="menu-action menu-action--danger" id="menuLogoutBtn" type="button" data-i18n="logout">Abmelden</button>
+    </li>
+  </ul>
+  <p class="menu-footer" id="menuUserLine" hidden></p>
+</aside>
+
+<div class="help-overlay" id="helpOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="help-card">
+    <div class="help-header">
+      <h2 class="help-title" id="helpTitle" data-i18n="helpTitle">Hilfe</h2>
+      <button class="help-close" id="helpCloseBtn" data-i18n-aria="helpClose" aria-label="Hilfe schließen">✕</button>
+    </div>
+    <div class="help-body" id="helpBody"></div>
+  </div>
+</div>
 
 <div class="auth-overlay" id="authOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
   <div class="auth-card">

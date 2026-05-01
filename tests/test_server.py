@@ -868,6 +868,35 @@ class TestStaticFiles:
         if fragment:
             assert fragment in res.text
 
+    def test_index_has_menu_drawer_and_help_modal(self):
+        # Catches accidental regressions on the hamburger UI rebuild.
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        for marker in (
+            'id="menuBtn"',
+            'id="menuDrawer"',
+            'id="ttsToggle"',
+            'id="menuHelpBtn"',
+            'id="menuLogoutBtn"',
+            'id="helpOverlay"',
+        ):
+            assert marker in html, f"index.html missing {marker}"
+
+    def test_viewport_pins_max_scale_for_ios(self):
+        # iOS PWAs render zoomed-in by default without maximum-scale=1.
+        client = _reload_app(login=False)
+        html = client.get("/").text
+        assert "maximum-scale=1" in html
+
+    def test_app_js_carries_new_i18n_keys(self):
+        # Every menu/help string must exist so the German UI doesn't show
+        # raw key names like "menuTitle" if a build only updated HTML.
+        client = _reload_app(login=False)
+        js = client.get("/app.js").text
+        for key in ("menuTitle", "menuLanguage", "menuTTS", "menuHelp",
+                    "ttsOn", "ttsOff", "helpTitle", "helpBody"):
+            assert key + ":" in js, f"i18n key {key!r} missing from app.js"
+
 
 class TestSecurityHeaders:
     def test_csp_and_headers_set(self):

@@ -19,7 +19,26 @@
     'de-CH': {
       headerToggleLang: 'Sprache wählen',
       headerToggleAuth: 'Konto wechseln',
-      headerToggleMute: 'Sprachausgabe stummschalten',
+      headerMenu: 'Menü öffnen',
+      menuTitle: 'Einstellungen',
+      menuClose: 'Menü schließen',
+      menuLanguage: 'Sprache',
+      menuTTS: 'Sprachausgabe',
+      menuTTSToggle: 'Sprachausgabe umschalten',
+      menuHelp: 'Hilfe',
+      ttsOn: 'Ein',
+      ttsOff: 'Aus',
+      helpTitle: 'Hilfe',
+      helpClose: 'Hilfe schließen',
+      helpBody: [
+        '<strong>Aufnehmen:</strong> Tippe auf den großen Mikrofon-Knopf, sprich, dann nochmal tippen zum Senden.',
+        '<strong>Tippen:</strong> Du kannst auch direkt ins Textfeld tippen, statt zu sprechen — oder beides mischen.',
+        '<strong>Löschen:</strong> Der ✕-Knopf neben dem Mikrofon leert den aktuellen Text und bricht eine laufende Aufnahme ab.',
+        '<strong>Sprachausgabe (TTS):</strong> Standardmäßig aus. Aktiviere sie im Menü, wenn du Antworten vorgelesen haben willst.',
+        '<strong>Sprache:</strong> Wähle im Menü oben links zwischen Deutsch, Französisch, Italienisch, Englisch und Spanisch — beeinflusst Spracherkennung, Vorlesen und die App-Beschriftungen.',
+        '<strong>Neues Gespräch:</strong> Der Knopf ganz unten startet eine neue Sitzung — das Backend kann das nutzen, um den Gesprächskontext zurückzusetzen.',
+        '<strong>Anmeldung:</strong> Nur freigeschaltete Google-Konten können diese Instanz nutzen. Über das Menü → Abmelden meldest du dich ab.',
+      ],
       authTitle: 'Anmelden',
       authIntro: 'Diese Instanz ist privat. Melde dich mit einem Google-Konto an, das vom Betreiber freigeschaltet wurde.',
       authHint: 'Anmeldung erfolgt direkt bei Google. VoxGate erhält nur deine E-Mail-Adresse.',
@@ -45,7 +64,26 @@
     'fr-CH': {
       headerToggleLang: 'Choisir la langue',
       headerToggleAuth: 'Changer de compte',
-      headerToggleMute: 'Couper la synthèse vocale',
+      headerMenu: 'Ouvrir le menu',
+      menuTitle: 'Paramètres',
+      menuClose: 'Fermer le menu',
+      menuLanguage: 'Langue',
+      menuTTS: 'Synthèse vocale',
+      menuTTSToggle: 'Activer/désactiver la synthèse',
+      menuHelp: 'Aide',
+      ttsOn: 'On',
+      ttsOff: 'Off',
+      helpTitle: 'Aide',
+      helpClose: "Fermer l'aide",
+      helpBody: [
+        "<strong>Enregistrer :</strong> appuyez sur le grand bouton micro, parlez, puis appuyez à nouveau pour envoyer.",
+        '<strong>Saisir :</strong> vous pouvez aussi taper directement dans la zone de texte — ou mélanger voix et clavier.',
+        '<strong>Effacer :</strong> le bouton ✕ à côté du micro vide le texte courant et interrompt un enregistrement.',
+        '<strong>Synthèse vocale (TTS) :</strong> désactivée par défaut. Activez-la dans le menu pour entendre les réponses.',
+        "<strong>Langue :</strong> dans le menu en haut à gauche, choisissez entre allemand, français, italien, anglais et espagnol — affecte reconnaissance, lecture vocale et libellés.",
+        "<strong>Nouvelle conversation :</strong> le bouton tout en bas démarre une nouvelle session — le backend peut s'en servir pour réinitialiser le contexte.",
+        '<strong>Connexion :</strong> seuls les comptes Google autorisés ont accès. Menu → Se déconnecter pour vous déconnecter.',
+      ],
       authTitle: 'Connexion',
       authIntro: "Cette instance est privée. Connectez-vous avec un compte Google autorisé par l'exploitant.",
       authHint: 'La connexion se fait directement chez Google. VoxGate reçoit uniquement votre adresse e-mail.',
@@ -71,7 +109,26 @@
     'it-CH': {
       headerToggleLang: 'Scegli la lingua',
       headerToggleAuth: 'Cambia account',
-      headerToggleMute: 'Disattiva sintesi vocale',
+      headerMenu: 'Apri menu',
+      menuTitle: 'Impostazioni',
+      menuClose: 'Chiudi menu',
+      menuLanguage: 'Lingua',
+      menuTTS: 'Sintesi vocale',
+      menuTTSToggle: 'Attiva/disattiva sintesi',
+      menuHelp: 'Aiuto',
+      ttsOn: 'On',
+      ttsOff: 'Off',
+      helpTitle: 'Aiuto',
+      helpClose: "Chiudi l'aiuto",
+      helpBody: [
+        '<strong>Registrare:</strong> tocca il pulsante grande del microfono, parla, poi tocca di nuovo per inviare.',
+        '<strong>Scrivere:</strong> puoi anche scrivere direttamente nel campo di testo — o mischiare voce e tastiera.',
+        '<strong>Cancellare:</strong> il pulsante ✕ accanto al microfono svuota il testo e interrompe la registrazione.',
+        '<strong>Sintesi vocale (TTS):</strong> disattivata per impostazione predefinita. Attivala nel menu per ascoltare le risposte.',
+        '<strong>Lingua:</strong> nel menu in alto a sinistra scegli tra tedesco, francese, italiano, inglese e spagnolo — riguarda riconoscimento, lettura e testi.',
+        '<strong>Nuova conversazione:</strong> il pulsante in basso avvia una nuova sessione — il backend può usarlo per ripartire da zero.',
+        '<strong>Accesso:</strong> solo gli account Google autorizzati possono accedere. Menu → Disconnetti per uscire.',
+      ],
       authTitle: 'Accesso',
       authIntro: 'Questa istanza è privata. Accedi con un account Google autorizzato dal gestore.',
       authHint: "L'accesso avviene direttamente presso Google. VoxGate riceve solo il tuo indirizzo e-mail.",
@@ -97,7 +154,26 @@
     'en-US': {
       headerToggleLang: 'Choose language',
       headerToggleAuth: 'Switch account',
-      headerToggleMute: 'Mute voice output',
+      headerMenu: 'Open menu',
+      menuTitle: 'Settings',
+      menuClose: 'Close menu',
+      menuLanguage: 'Language',
+      menuTTS: 'Voice output',
+      menuTTSToggle: 'Toggle voice output',
+      menuHelp: 'Help',
+      ttsOn: 'On',
+      ttsOff: 'Off',
+      helpTitle: 'Help',
+      helpClose: 'Close help',
+      helpBody: [
+        '<strong>Recording:</strong> tap the large mic button, speak, then tap again to send.',
+        '<strong>Typing:</strong> you can also type directly into the text box — or mix voice and keyboard.',
+        '<strong>Clearing:</strong> the ✕ button next to the mic empties the current text and aborts an ongoing recording.',
+        '<strong>Voice output (TTS):</strong> off by default. Turn it on in the menu if you want answers read aloud.',
+        '<strong>Language:</strong> the menu (top left) lets you switch between German, French, Italian, English and Spanish — affects recognition, read-aloud and labels.',
+        '<strong>New conversation:</strong> the bottom button starts a new session — the backend can use that to reset context.',
+        '<strong>Sign-in:</strong> only authorized Google accounts can use this instance. Menu → Sign out to log out.',
+      ],
       authTitle: 'Sign in',
       authIntro: 'This instance is private. Sign in with a Google account that the operator has authorized.',
       authHint: 'Sign-in happens directly with Google. VoxGate only receives your e-mail address.',
@@ -123,7 +199,26 @@
     'es-ES': {
       headerToggleLang: 'Elegir idioma',
       headerToggleAuth: 'Cambiar cuenta',
-      headerToggleMute: 'Silenciar voz',
+      headerMenu: 'Abrir menú',
+      menuTitle: 'Ajustes',
+      menuClose: 'Cerrar menú',
+      menuLanguage: 'Idioma',
+      menuTTS: 'Síntesis de voz',
+      menuTTSToggle: 'Activar/desactivar síntesis',
+      menuHelp: 'Ayuda',
+      ttsOn: 'On',
+      ttsOff: 'Off',
+      helpTitle: 'Ayuda',
+      helpClose: 'Cerrar ayuda',
+      helpBody: [
+        '<strong>Grabar:</strong> toca el gran botón de micrófono, habla y vuelve a tocar para enviar.',
+        '<strong>Escribir:</strong> también puedes escribir directamente en el cuadro de texto — o mezclar voz y teclado.',
+        '<strong>Borrar:</strong> el botón ✕ junto al micrófono vacía el texto y aborta una grabación en curso.',
+        '<strong>Síntesis de voz (TTS):</strong> desactivada por defecto. Actívala en el menú para que las respuestas se lean en voz alta.',
+        '<strong>Idioma:</strong> en el menú arriba a la izquierda elige entre alemán, francés, italiano, inglés y español — afecta reconocimiento, lectura y etiquetas.',
+        '<strong>Nueva conversación:</strong> el botón inferior inicia una nueva sesión — el backend puede usarlo para reiniciar el contexto.',
+        '<strong>Sesión:</strong> sólo cuentas Google autorizadas pueden usar esta instancia. Menú → Cerrar sesión para salir.',
+      ],
       authTitle: 'Iniciar sesión',
       authIntro: 'Esta instancia es privada. Inicia sesión con una cuenta de Google autorizada por el operador.',
       authHint: 'El inicio de sesión se realiza directamente con Google. VoxGate solo recibe tu dirección de correo.',
@@ -178,7 +273,12 @@
       : [instanceConfig.lang];
   }
   let currentLang = localStorage.getItem('voxLang') || null;
-  let muted = localStorage.getItem('voxMuted') === '1';
+  // TTS is OFF by default — having it on by default startled new users
+  // when the app suddenly started talking. They can opt in via the menu.
+  // Key 'voxMuted' is preserved for backwards compat with installs that
+  // already chose a value: '1' = muted (TTS off), '0' = TTS on.
+  const _ttsStored = localStorage.getItem('voxMuted');
+  let muted = _ttsStored === null ? true : _ttsStored === '1';
   let sessionId = sessionStorage.getItem('voxSession');
   if (!sessionId) {
     sessionId = (crypto.randomUUID ? crypto.randomUUID()
@@ -201,13 +301,90 @@
   const statusDot = document.getElementById('statusDot');
   const logo = document.getElementById('logo');
   const langSelect = document.getElementById('langSelect');
-  const muteBtn = document.getElementById('muteBtn');
   const newConvBtn = document.getElementById('newConvBtn');
   const discardBtn = document.getElementById('discardBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const menuDrawer = document.getElementById('menuDrawer');
+  const menuCloseBtn = document.getElementById('menuCloseBtn');
+  const menuHelpBtn = document.getElementById('menuHelpBtn');
+  const menuLogoutBtn = document.getElementById('menuLogoutBtn');
+  const menuUserLine = document.getElementById('menuUserLine');
+  const ttsToggle = document.getElementById('ttsToggle');
+  const ttsToggleState = document.getElementById('ttsToggleState');
+  const helpOverlay = document.getElementById('helpOverlay');
+  const helpCloseBtn = document.getElementById('helpCloseBtn');
+  const helpBody = document.getElementById('helpBody');
   // Auth overlay is owned by VoxGateAuth (auth.js). The logo button opens the
   // overlay so the user can switch accounts or sign out without waiting for a
-  // 401 from the API.
+  // 401 from the API. Day-to-day settings (lang, TTS, logout, help) live in
+  // the hamburger drawer.
   logo.addEventListener('click', () => VoxGateAuth.showLogin());
+
+  function setMenuOpen(open) {
+    menuOverlay.hidden = !open;
+    menuDrawer.hidden = !open;
+    menuDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) {
+      const user = VoxGateAuth.getUser && VoxGateAuth.getUser();
+      if (user && user.email) {
+        menuUserLine.hidden = false;
+        menuUserLine.textContent = (t('loggedInAs') || '') + ' ' + user.email;
+      } else {
+        menuUserLine.hidden = true;
+      }
+    }
+  }
+  menuBtn.addEventListener('click', () => setMenuOpen(true));
+  menuCloseBtn.addEventListener('click', () => setMenuOpen(false));
+  menuOverlay.addEventListener('click', () => setMenuOpen(false));
+  menuLogoutBtn.addEventListener('click', () => {
+    setMenuOpen(false);
+    VoxGateAuth.logout();
+  });
+  menuHelpBtn.addEventListener('click', () => {
+    setMenuOpen(false);
+    setHelpOpen(true);
+  });
+
+  function setHelpOpen(open) {
+    if (open) renderHelp();
+    helpOverlay.hidden = !open;
+  }
+  helpCloseBtn.addEventListener('click', () => setHelpOpen(false));
+  helpOverlay.addEventListener('click', (e) => {
+    if (e.target === helpOverlay) setHelpOpen(false);
+  });
+
+  function renderHelp() {
+    const paragraphs = (I18N[activeLang()] && I18N[activeLang()].helpBody)
+      || I18N['de-CH'].helpBody;
+    // helpBody entries contain inline <strong> tags we want preserved,
+    // so we trust the i18n-controlled content; user-typed text never
+    // flows through here.
+    helpBody.innerHTML = paragraphs.map((p) => '<p>' + p + '</p>').join('');
+  }
+
+  function updateTtsToggleUI() {
+    const on = !muted;
+    ttsToggle.setAttribute('aria-checked', on ? 'true' : 'false');
+    ttsToggleState.textContent = t(on ? 'ttsOn' : 'ttsOff');
+    ttsToggleState.dataset.i18n = on ? 'ttsOn' : 'ttsOff';
+  }
+  ttsToggle.addEventListener('click', () => {
+    muted = !muted; // toggle
+    localStorage.setItem('voxMuted', muted ? '1' : '0');
+    if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+    updateTtsToggleUI();
+  });
+
+  // Esc closes whichever overlay is on top.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!helpOverlay.hidden) setHelpOpen(false);
+    else if (!menuDrawer.hidden) setMenuOpen(false);
+  });
 
   function populateLangSelect() {
     const langs = supportedLangs();
@@ -268,11 +445,11 @@
     } else if (state === 'review') {
       micLabel.textContent = t('micSend');
     }
-  }
-
-  function updateMuteBtn() {
-    muteBtn.textContent = muted ? '🔇' : '🔊';
-    muteBtn.classList.toggle('muted', muted);
+    // Toggle pill carries dynamic state-aware text not driven by a
+    // static data-i18n key; refresh it explicitly.
+    updateTtsToggleUI();
+    // If the help modal is open, re-render its body in the new language.
+    if (helpOverlay && !helpOverlay.hidden) renderHelp();
   }
 
   langSelect.addEventListener('change', () => {
@@ -282,13 +459,6 @@
     localStorage.setItem('voxLang', next);
     if (state !== 'idle') discardReview();
     applyLang();
-  });
-
-  muteBtn.addEventListener('click', () => {
-    muted = !muted;
-    localStorage.setItem('voxMuted', muted ? '1' : '0');
-    if (muted && 'speechSynthesis' in window) speechSynthesis.cancel();
-    updateMuteBtn();
   });
 
   newConvBtn.addEventListener('click', () => {
@@ -624,7 +794,7 @@
   // us the actual SPEECH_LANGS list.
   if (!currentLang) currentLang = detectInitialLang();
   applyLang();
-  updateMuteBtn();
+  updateTtsToggleUI();
   loadConfig().then(() => {
     if (!localStorage.getItem('voxLang')) {
       currentLang = detectInitialLang();
