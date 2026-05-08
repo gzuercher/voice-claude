@@ -18,7 +18,13 @@ last upgrade, if any.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-08
+
 ### Added
+- **Roundtrip timing under each assistant reply.** PWA measures the
+  client-observed `/chat` round-trip with `performance.now()` and
+  shows it as a discreet `1.2 s` / `340 ms` line, right-aligned below
+  the bubble. Frontend-only, no backend contract change.
 - **Service worker caches Google Fonts.** First load fetches the font
   files once over the network; subsequent loads are served from the
   Cache Storage API. App responses (HTML/JS/CSS, `/chat`, `/config`,

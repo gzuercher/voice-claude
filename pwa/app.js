@@ -771,6 +771,15 @@
     return div;
   }
 
+  function addTiming(messageDiv, ms) {
+    const meta = document.createElement('div');
+    meta.className = 'message-meta';
+    meta.textContent = ms < 1000
+      ? Math.round(ms) + ' ms'
+      : (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + ' s';
+    messageDiv.appendChild(meta);
+  }
+
   function escapeHtml(t) {
     return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
@@ -1010,6 +1019,7 @@
     const body = { text, session_id: sessionId, lang: activeLang() };
     if (attachments.length) body.attachments = attachments;
 
+    const t0 = performance.now();
     try {
       const res = await fetch('/chat', VoxGateAuth.withAuthHeaders({
         method: 'POST',
@@ -1048,6 +1058,7 @@
         bubble.textContent = reply;
       }
       setStatus('online');
+      addTiming(typingDiv, performance.now() - t0);
       speak(reply);
     } catch (err) {
       typingDiv.classList.remove('typing');
