@@ -25,6 +25,16 @@
       menuLanguage: 'Sprache',
       menuTTS: 'Sprachausgabe',
       menuTTSToggle: 'Sprachausgabe umschalten',
+      menuAutoSend: 'Automatisch senden',
+      menuAutoSendToggle: 'Automatisch senden umschalten',
+      autoSendOn: 'Ein',
+      autoSendOff: 'Aus',
+      menuAutoSendSpeed: 'Pause vor Senden',
+      menuAutoSendSpeedAria: 'Pause-Dauer wählen',
+      autoSendFast: 'Schnell',
+      autoSendNormal: 'Normal',
+      autoSendPatient: 'Geduldig',
+      micStopSend: 'Stopp & Senden',
       menuTheme: 'Erscheinungsbild',
       menuThemeAria: 'Erscheinungsbild wählen',
       themeAuto: 'Auto',
@@ -80,6 +90,16 @@
       menuLanguage: 'Langue',
       menuTTS: 'Synthèse vocale',
       menuTTSToggle: 'Activer/désactiver la synthèse',
+      menuAutoSend: 'Envoi automatique',
+      menuAutoSendToggle: 'Activer/désactiver l\'envoi automatique',
+      autoSendOn: 'Activé',
+      autoSendOff: 'Désactivé',
+      menuAutoSendSpeed: 'Pause avant envoi',
+      menuAutoSendSpeedAria: 'Choisir la durée de pause',
+      autoSendFast: 'Rapide',
+      autoSendNormal: 'Normal',
+      autoSendPatient: 'Patient',
+      micStopSend: 'Arrêter & envoyer',
       menuTheme: 'Apparence',
       menuThemeAria: "Choisir l'apparence",
       themeAuto: 'Auto',
@@ -135,6 +155,16 @@
       menuLanguage: 'Lingua',
       menuTTS: 'Sintesi vocale',
       menuTTSToggle: 'Attiva/disattiva sintesi',
+      menuAutoSend: 'Invio automatico',
+      menuAutoSendToggle: 'Attiva/disattiva invio automatico',
+      autoSendOn: 'On',
+      autoSendOff: 'Off',
+      menuAutoSendSpeed: 'Pausa prima dell\'invio',
+      menuAutoSendSpeedAria: 'Scegli durata pausa',
+      autoSendFast: 'Veloce',
+      autoSendNormal: 'Normale',
+      autoSendPatient: 'Paziente',
+      micStopSend: 'Stop & invia',
       menuTheme: 'Aspetto',
       menuThemeAria: "Scegli l'aspetto",
       themeAuto: 'Auto',
@@ -190,6 +220,16 @@
       menuLanguage: 'Language',
       menuTTS: 'Voice output',
       menuTTSToggle: 'Toggle voice output',
+      menuAutoSend: 'Auto-send',
+      menuAutoSendToggle: 'Toggle auto-send',
+      autoSendOn: 'On',
+      autoSendOff: 'Off',
+      menuAutoSendSpeed: 'Pause before send',
+      menuAutoSendSpeedAria: 'Choose pause length',
+      autoSendFast: 'Fast',
+      autoSendNormal: 'Normal',
+      autoSendPatient: 'Patient',
+      micStopSend: 'Stop & send',
       menuTheme: 'Appearance',
       menuThemeAria: 'Choose appearance',
       themeAuto: 'Auto',
@@ -245,6 +285,16 @@
       menuLanguage: 'Idioma',
       menuTTS: 'Síntesis de voz',
       menuTTSToggle: 'Activar/desactivar síntesis',
+      menuAutoSend: 'Envío automático',
+      menuAutoSendToggle: 'Activar/desactivar envío automático',
+      autoSendOn: 'Activado',
+      autoSendOff: 'Desactivado',
+      menuAutoSendSpeed: 'Pausa antes de enviar',
+      menuAutoSendSpeedAria: 'Elegir duración de pausa',
+      autoSendFast: 'Rápido',
+      autoSendNormal: 'Normal',
+      autoSendPatient: 'Paciente',
+      micStopSend: 'Parar y enviar',
       menuTheme: 'Apariencia',
       menuThemeAria: 'Elegir apariencia',
       themeAuto: 'Auto',
@@ -432,6 +482,101 @@
     updateTtsToggleUI();
   });
 
+  // ── Auto-send (opt-in, default off) ─────────────────────────────────
+  // The classic flow (mic→recording→review→tap-send) is fully preserved
+  // and remains the default. Auto-send replaces the review step with a
+  // silence-detection timer: each `recognition.onresult` resets the
+  // timer, and when it fires we lock the text and send immediately. The
+  // mic button doubles as "force-send" while in this mode.
+  const AUTO_SEND_DELAYS = [1200, 1800, 2500];        // ms, must match data-delay-value
+  const AUTO_SEND_DEFAULT_DELAY = 1800;
+  const AUTO_SEND_PREWARN_MS = 500;                    // visual cue before fire
+
+  let autoSendEnabled = localStorage.getItem('voxAutoSend') === '1';
+  let autoSendDelay = parseInt(localStorage.getItem('voxAutoSendDelay') || '', 10);
+  if (!AUTO_SEND_DELAYS.includes(autoSendDelay)) autoSendDelay = AUTO_SEND_DEFAULT_DELAY;
+  let autoSendTimer = null;
+  let autoSendPreWarnTimer = null;
+
+  const autoSendToggle = document.getElementById('autoSendToggle');
+  const autoSendToggleState = document.getElementById('autoSendToggleState');
+  const autoSendSegment = document.getElementById('autoSendSegment');
+  const autoSendSegmentBtns = autoSendSegment.querySelectorAll('[data-delay-value]');
+
+  function updateAutoSendUI() {
+    autoSendToggle.setAttribute('aria-checked', autoSendEnabled ? 'true' : 'false');
+    autoSendToggleState.textContent = t(autoSendEnabled ? 'autoSendOn' : 'autoSendOff');
+    autoSendToggleState.dataset.i18n = autoSendEnabled ? 'autoSendOn' : 'autoSendOff';
+    autoSendSegment.setAttribute('aria-disabled', autoSendEnabled ? 'false' : 'true');
+    autoSendSegmentBtns.forEach((b) => {
+      const isMatch = parseInt(b.dataset.delayValue, 10) === autoSendDelay;
+      b.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+      b.disabled = !autoSendEnabled;
+    });
+    // Mic label flips between "Stop" and "Stop & send" depending on
+    // mode; only refresh when actively recording so we don't disturb
+    // the idle/review labels.
+    if (state === 'recording') {
+      micLabel.textContent = t(autoSendEnabled ? 'micStopSend' : 'micStop');
+    }
+  }
+
+  autoSendToggle.addEventListener('click', () => {
+    autoSendEnabled = !autoSendEnabled;
+    localStorage.setItem('voxAutoSend', autoSendEnabled ? '1' : '0');
+    if (!autoSendEnabled) cancelAutoSendTimers();
+    updateAutoSendUI();
+  });
+  autoSendSegmentBtns.forEach((b) => {
+    b.addEventListener('click', () => {
+      if (!autoSendEnabled) return;
+      const next = parseInt(b.dataset.delayValue, 10);
+      if (!AUTO_SEND_DELAYS.includes(next)) return;
+      autoSendDelay = next;
+      localStorage.setItem('voxAutoSendDelay', String(next));
+      updateAutoSendUI();
+    });
+  });
+
+  function cancelAutoSendTimers() {
+    if (autoSendTimer) { clearTimeout(autoSendTimer); autoSendTimer = null; }
+    if (autoSendPreWarnTimer) { clearTimeout(autoSendPreWarnTimer); autoSendPreWarnTimer = null; }
+    micBtn.classList.remove('about-to-send');
+  }
+
+  function scheduleAutoSend() {
+    cancelAutoSendTimers();
+    // Pre-warn the user that a send is imminent — a distinct mic-pulse
+    // gives them ~500 ms to keep talking and reset the timer.
+    autoSendPreWarnTimer = setTimeout(() => {
+      micBtn.classList.add('about-to-send');
+    }, Math.max(0, autoSendDelay - AUTO_SEND_PREWARN_MS));
+    autoSendTimer = setTimeout(() => {
+      autoSendTimer = null;
+      autoSendPreWarnTimer = null;
+      micBtn.classList.remove('about-to-send');
+      autoSendNow();
+    }, autoSendDelay);
+  }
+
+  function autoSendNow() {
+    // Mirrors what enterReview()+sendCurrent() do together, but skips
+    // the editable review step. Pull the locked text directly out of
+    // the Web Speech buffers, populate the transcript box so
+    // sendCurrent() sees it, then fire.
+    cancelAutoSendTimers();
+    stopRecognition();
+    sessionFinal = mergeTranscript(sessionFinal, currentSessionText);
+    currentSessionText = '';
+    const lockedText = (sessionFinal || '').trim();
+    if (!lockedText && pendingAttachments.length === 0) {
+      setState('idle');
+      return;
+    }
+    transcriptBox.textContent = lockedText;
+    sendCurrent();
+  }
+
   // ── Theme: 3-way (auto / light / dark) ──────────────────────────────
   // Initial value already applied to <html data-theme="..."> by theme.js
   // (synchronous, in <head>) to avoid flash-of-wrong-theme. Here we
@@ -555,6 +700,7 @@
     // Toggle pill carries dynamic state-aware text not driven by a
     // static data-i18n key; refresh it explicitly.
     updateTtsToggleUI();
+    updateAutoSendUI();
     // If the help modal is open, re-render its body in the new language.
     if (helpOverlay && !helpOverlay.hidden) renderHelp();
   }
@@ -797,9 +943,19 @@
         startRecording();
       }
     } else if (state === 'recording') {
-      enterReview();
+      // Auto-send mode: a tap during recording means "fire now", not
+      // "enter review" — the user does not see an editable buffer in
+      // this mode by design.
+      if (autoSendEnabled) {
+        autoSendNow();
+      } else {
+        enterReview();
+      }
     } else if (state === 'review') {
       sendCurrent();
+    } else if (state === 'streaming') {
+      // The mic button doubles as Stop while a reply is streaming.
+      stopStream();
     }
   }
 
@@ -807,6 +963,7 @@
     dbg('state', { from: state, to: next });
     state = next;
     micBtn.classList.toggle('recording', next === 'recording');
+    micBtn.classList.toggle('streaming', next === 'streaming');
     const hasAttachments = pendingAttachments.length > 0;
     // The discard button is always visible (next to the text field) so
     // its position stays stable across states. Disable it when there is
@@ -814,11 +971,16 @@
     if (next === 'idle') {
       micLabel.textContent = hasAttachments ? t('micSend') : t('micRecord');
       updateTranscript('', false);
+      cancelAutoSendTimers();
     } else if (next === 'recording') {
-      micLabel.textContent = t('micStop');
+      micLabel.textContent = t(autoSendEnabled ? 'micStopSend' : 'micStop');
     } else if (next === 'review') {
       micLabel.textContent = t('micSend');
       transcriptBox.classList.remove('active');
+    } else if (next === 'streaming') {
+      // Re-purpose the mic button as a Stop control while the reply
+      // is being streamed. Tapping it cancels the in-flight turn.
+      micLabel.textContent = t('micStop');
     }
     const hasText = (transcriptBox.textContent || '').trim().length > 0;
     discardBtn.disabled = next === 'idle' && !hasAttachments && !hasText;
@@ -914,6 +1076,12 @@
         display: currentTranscript,
       });
       updateTranscript(currentTranscript, true);
+      // Reset the silence-detection timer on every result event (interim
+      // and final). The timer fires `autoSendNow()` once the user has
+      // been silent long enough — see scheduleAutoSend() for details.
+      if (autoSendEnabled && currentTranscript.trim().length > 0) {
+        scheduleAutoSend();
+      }
     };
 
     recognition.onend = () => {
@@ -1001,8 +1169,36 @@
     await sendText(text, attachments);
   }
 
+  // Tracks the in-flight stream so a new send (or a Stop tap) can
+  // cancel cleanly. null when no turn is in flight.
+  let currentStream = null;
+
+  function applyFollowUpHint(typingDiv, bubble, data) {
+    // Optional contract extension: backend signals that its reply is a
+    // clarifying question and the user should answer immediately.
+    if (data && data.awaiting_user_input === true) {
+      typingDiv.classList.add('awaiting-input');
+      if (typeof data.suggestion === 'string' && data.suggestion) {
+        transcriptBox.setAttribute('data-placeholder', data.suggestion);
+      }
+      // Keep focus in the text box so the user can type without an
+      // extra tap. Mic stays available but is not auto-started.
+      transcriptBox.focus();
+    }
+  }
+
   async function sendText(text, attachments) {
     attachments = attachments || [];
+    // If a previous turn is still streaming, cancel it before starting
+    // the next one. The PWA enforces "one turn at a time" — see
+    // docs/integration.md non-goals.
+    if (currentStream) {
+      const sid = currentStream.sessionId;
+      currentStream.aborted = true;
+      currentStream = null;
+      try { await VoxGateChat.cancel(sid); } catch (_) { /* idempotent */ }
+    }
+
     // Show the user bubble with the text plus a placeholder for any
     // attached image. Bubbles do not render images today (one-way: we
     // only forward them to the backend); the count makes the upload
@@ -1020,53 +1216,108 @@
     if (attachments.length) body.attachments = attachments;
 
     const t0 = performance.now();
-    try {
-      const res = await fetch('/chat', VoxGateAuth.withAuthHeaders({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      }));
+    const useStream = instanceConfig.streaming !== false;
 
-      if (res.status === 401) {
+    try {
+      if (useStream) {
+        const ctl = { sessionId: sessionId, aborted: false };
+        currentStream = ctl;
+        setState('streaming');
+        const bubble = typingDiv.querySelector('.message-bubble');
+        let acc = '';
+        let switchedToStreaming = false;
+        await VoxGateChat.stream(body, {
+          onChunk: (delta) => {
+            if (ctl.aborted) return;
+            if (!switchedToStreaming) {
+              typingDiv.classList.remove('typing');
+              setStatus('streaming');
+              switchedToStreaming = true;
+            }
+            acc += delta;
+            // Render as plain text during the stream; swap to Markdown
+            // on `final` so partial fences don't break the DOM.
+            bubble.textContent = acc;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          },
+          onFinal: (data) => {
+            if (ctl.aborted) return;
+            const reply = typeof data.response === 'string' ? data.response : acc;
+            typingDiv.classList.remove('typing');
+            if (window.renderMarkdown) {
+              window.renderMarkdown(reply, bubble);
+            } else {
+              bubble.textContent = reply;
+            }
+            setStatus('online');
+            addTiming(typingDiv, performance.now() - t0);
+            speak(reply);
+            applyFollowUpHint(typingDiv, bubble, data);
+          },
+          onError: (err) => {
+            if (ctl.aborted) return;
+            typingDiv.classList.remove('typing');
+            const msg = err && err.code === 'cancelled'
+              ? t('errorPrefix') + 'cancelled'
+              : t('errorPrefix') + ((err && err.message) || 'stream error');
+            bubble.textContent = msg;
+            setStatus('error');
+          },
+        });
+        currentStream = null;
+        if (state === 'streaming') setState('idle');
+      } else {
+        // Legacy non-streaming path. Backends without streaming or
+        // operators with STREAMING_ENABLED=0 land here.
+        const data = await VoxGateChat.send(body);
+        const reply = data.response;
+        const bubble = typingDiv.querySelector('.message-bubble');
+        typingDiv.classList.remove('typing');
+        if (window.renderMarkdown) {
+          window.renderMarkdown(reply, bubble);
+        } else {
+          bubble.textContent = reply;
+        }
+        setStatus('online');
+        addTiming(typingDiv, performance.now() - t0);
+        speak(reply);
+        applyFollowUpHint(typingDiv, bubble, data);
+      }
+    } catch (err) {
+      currentStream = null;
+      if (err && err.status === 401) {
         typingDiv.remove();
         setStatus('error');
         VoxGateAuth.showLogin();
+        if (state === 'streaming') setState('idle');
         return;
       }
-      if (res.status === 403) {
+      if (err && err.status === 403) {
         typingDiv.remove();
         setStatus('error');
         VoxGateAuth.showLogin(t('notAllowedError'));
+        if (state === 'streaming') setState('idle');
         return;
       }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      // Strict contract: backend must return {"response": "<string>"}. The
-      // server enforces this and rejects malformed responses with 502, so
-      // by the time we get here the field is guaranteed — but we still
-      // guard defensively in case of future API drift.
-      if (typeof data.response !== 'string') {
-        throw new Error('Malformed response from server');
-      }
-      const reply = data.response;
-
-      typingDiv.classList.remove('typing');
-      const bubble = typingDiv.querySelector('.message-bubble');
-      if (window.renderMarkdown) {
-        window.renderMarkdown(reply, bubble);
-      } else {
-        bubble.textContent = reply;
-      }
-      setStatus('online');
-      addTiming(typingDiv, performance.now() - t0);
-      speak(reply);
-    } catch (err) {
       typingDiv.classList.remove('typing');
       typingDiv.querySelector('.message-bubble').textContent = t('errorPrefix') + err.message;
       setStatus('error');
+      if (state === 'streaming') setState('idle');
     }
 
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  // User-initiated cancel: stops the in-flight stream and leaves the
+  // partial bubble in place so the user can see what they got.
+  async function stopStream() {
+    if (!currentStream) return;
+    const sid = currentStream.sessionId;
+    currentStream.aborted = true;
+    currentStream = null;
+    setStatus('online');
+    if (state === 'streaming') setState('idle');
+    try { await VoxGateChat.cancel(sid); } catch (_) { /* idempotent */ }
   }
 
   // Initial lang from localStorage or browser/OS, refined once /config gives
@@ -1074,6 +1325,7 @@
   if (!currentLang) currentLang = detectInitialLang();
   applyLang();
   updateTtsToggleUI();
+  updateAutoSendUI();
   loadConfig().then(() => {
     if (!localStorage.getItem('voxLang')) {
       currentLang = detectInitialLang();

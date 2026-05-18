@@ -17,19 +17,6 @@ estimated time:
 
 ## Höher
 
-### Streaming responses (SSE)
-- **Value:** backend replies start playing/showing within ~500 ms
-  instead of after the full response. The single biggest
-  perceived-quality win in the document — without it VoxGate feels
-  noticeably slower than ChatGPT-style apps, and the gap grows with
-  longer answers.
-- **Cost:** **contract change.** Today the backend returns one JSON
-  object; for streaming we'd extend the contract to allow SSE or
-  chunked transfer-encoding from TARGET_URL, with VoxGate forwarding
-  chunks to the PWA. Backends would need to opt in. PWA: incremental
-  TTS plus text accumulation. The tricky part is making
-  `speechSynthesis` speak partial sentences without sounding chopped.
-
 ### Additional identity providers (Microsoft, Apple, generic OIDC)
 - **Value:** users without a Google account get a familiar option, and
   organisations on Microsoft 365 / Entra ID can plug their tenant in
@@ -57,6 +44,15 @@ production. Kept here briefly so old links resolve and the "what
 shipped recently" question has an answer; full per-version detail
 lives in [`../CHANGELOG.md`](../CHANGELOG.md).
 
+- **SSE streaming + cancel + follow-up hint** (2026-05-17). New
+  endpoints `POST /chat/stream` and `POST /chat/cancel` extend the
+  backend contract additively. PWA renders deltas as they arrive, the
+  mic button doubles as Stop while streaming, and submitting a new
+  prompt during a stream auto-cancels the previous one. Backends may
+  set `awaiting_user_input` / `suggestion` on the response to flag
+  clarifying questions. Backends without streaming continue to work
+  unchanged. Full sub-contract:
+  [`integration.md`](integration.md#streaming-sub-contract).
 - **Image / camera input** (2026-04-30). PWA captures or picks an
   image, downscales to 1600 px JPEG quality 0.85, base64-forwards via
   the `attachments[]` field of the `/chat` → TARGET_URL contract.

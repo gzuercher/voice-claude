@@ -4,9 +4,8 @@ Installation, configuration, and operation. For what VoxGate *does* see
 [`../README.md`](../README.md). For development workflow see
 [`contributing.md`](contributing.md). For the operator security
 checklist see [`security.md`](security.md). For the JSON contract
-between VoxGate and your backend see
-[`integration.md`](integration.md). For example backend
-implementations see [`backends.md`](backends.md).
+between VoxGate and your backend (and runnable example backends)
+see [`integration.md`](integration.md).
 
 ## Which variant?
 
@@ -68,8 +67,9 @@ sibling subdomain attack and still hit a logged-in endpoint. Login and
 logout are additionally Origin-checked when `ALLOWED_ORIGIN` is set.
 
 For programmatic clients, see the curl example in
-[`backends.md`](backends.md) — log in once, persist cookies, copy the
-`vg_csrf` value into a header on subsequent calls.
+[`integration.md`](integration.md#self-test-diagnostic-shape) — log in
+once, persist cookies, copy the `vg_csrf` value into a header on
+subsequent calls.
 
 #### Setting up the Google OAuth Client
 
@@ -349,9 +349,12 @@ For multiple instances, copy the unit (`voxgate-planner.service`,
 
 ## Custom backend for `/chat`
 
-Backend contract (strict): [`integration.md`](integration.md).
-Example implementations (Python/FastAPI, Node/Express, bash stub,
-adapter to Anthropic): [`backends.md`](backends.md).
+Backend contract (strict) and runnable example implementations
+(Python/FastAPI minimal, FastAPI streaming SSE, Anthropic streaming
+adapter, Node/Express, bash stub):
+[`integration.md`](integration.md) — the
+[Reference backend implementations](integration.md#reference-backend-implementations)
+section at the end.
 
 ## Security
 

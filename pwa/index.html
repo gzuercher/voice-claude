@@ -63,6 +63,21 @@
         <span class="menu-toggle-state" id="ttsToggleState" data-i18n="ttsOff">Aus</span>
       </button>
     </li>
+    <li class="menu-item menu-item--row">
+      <label class="menu-label" data-i18n="menuAutoSend" for="autoSendToggle">Automatisch senden</label>
+      <button class="menu-toggle" id="autoSendToggle" type="button" role="switch" aria-checked="false" data-i18n-aria="menuAutoSendToggle" aria-label="Automatisch senden umschalten">
+        <span class="menu-toggle-track"><span class="menu-toggle-thumb"></span></span>
+        <span class="menu-toggle-state" id="autoSendToggleState" data-i18n="autoSendOff">Aus</span>
+      </button>
+    </li>
+    <li class="menu-item menu-item--row">
+      <span class="menu-label" data-i18n="menuAutoSendSpeed">Pause vor Senden</span>
+      <div class="menu-segment" id="autoSendSegment" role="radiogroup" data-i18n-aria="menuAutoSendSpeedAria" aria-label="Pause-Dauer wählen">
+        <button class="menu-segment-btn" type="button" data-delay-value="1200" role="radio" aria-checked="false" data-i18n="autoSendFast">Schnell</button>
+        <button class="menu-segment-btn" type="button" data-delay-value="1800" role="radio" aria-checked="true" data-i18n="autoSendNormal">Normal</button>
+        <button class="menu-segment-btn" type="button" data-delay-value="2500" role="radio" aria-checked="false" data-i18n="autoSendPatient">Geduldig</button>
+      </div>
+    </li>
     <li class="menu-item">
       <button class="menu-action" id="menuHelpBtn" type="button" data-i18n="menuHelp">Hilfe</button>
     </li>
@@ -135,6 +150,7 @@
 
 <script src="auth.js"></script>
 <script src="markdown.js"></script>
+<script src="chat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

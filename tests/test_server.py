@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, patch
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -185,7 +186,8 @@ class TestIntegrationEndpoint:
         body = client.get("/integration").text
         for path in (
             "/integration", "/config", "/openapi.json", "/docs", "/redoc",
-            "/chat", "/auth/login/{provider}", "/auth/logout", "/auth/me",
+            "/chat", "/chat/stream", "/chat/cancel",
+            "/auth/login/{provider}", "/auth/logout", "/auth/me",
             "/auth/providers", "/debug-log",
         ):
             assert path in body, f"endpoint map missing {path!r}"
@@ -194,6 +196,28 @@ class TestIntegrationEndpoint:
         # Hard guarantee that nobody accidentally lands on the old path.
         client = _reload_app(login=False)
         assert client.get("/backend-contract").status_code == 404
+
+    def test_reference_implementations_inlined(self):
+        # The integration doc is the single source of truth for both
+        # the contract *and* the runnable backend templates. The doc
+        # gets fetched live by integrators (often other Claude
+        # instances) so the example code must travel with it.
+        client = _reload_app(login=False)
+        body = client.get("/integration").text
+        assert "## Reference backend implementations" in body
+        for marker in (
+            "Python / FastAPI — minimal echo",
+            "Python / FastAPI — streaming echo (SSE)",
+            "voice-to-Claude adapter",
+            "Node / Express",
+            "Bash + nc",
+            # The streaming example must contain the negotiation hint
+            # and the disconnect-detection idiom — these are the two
+            # things every backend author needs to copy correctly.
+            "text/event-stream",
+            "is_disconnected",
+        ):
+            assert marker in body, f"reference impls missing {marker!r}"
 
 
 # -----------------------------------------------------------------------------
@@ -1339,3 +1363,347 @@ class TestLogoutCSRF:
         assert res.status_code == 200
         res = client.get("/auth/me")
         assert res.status_code == 401
+
+
+# -----------------------------------------------------------------------------
+# /chat — follow-up-hint passthrough (legacy JSON path)
+# -----------------------------------------------------------------------------
+
+
+class TestChatFollowUpHint:
+    """Optional contract extension: backends may set
+    `awaiting_user_input` (bool) and `suggestion` (string) on the JSON
+    response. VoxGate passes them through to the PWA when shape-correct
+    and silently drops them otherwise."""
+
+    def test_awaiting_user_input_passthrough(self):
+        client = _reload_app()
+        cm, _ = _mock_backend({
+            "response": "Welche Wurst?",
+            "awaiting_user_input": True,
+            "suggestion": "z.B. Cervelat",
+        })
+        with cm:
+            res = client.post("/chat", json={"text": "hi", "session_id": GOOD_SID})
+        assert res.status_code == 200
+        data = res.json()
+        assert data["response"] == "Welche Wurst?"
+        assert data["awaiting_user_input"] is True
+        assert data["suggestion"] == "z.B. Cervelat"
+
+    def test_absent_fields_not_in_response(self):
+        client = _reload_app()
+        cm, _ = _mock_backend({"response": "ok"})
+        with cm:
+            res = client.post("/chat", json={"text": "hi", "session_id": GOOD_SID})
+        data = res.json()
+        assert "awaiting_user_input" not in data
+        assert "suggestion" not in data
+
+    def test_wrong_typed_fields_silently_dropped(self):
+        # Defensive: a backend that sends the wrong type shouldn't break
+        # the response — it should just lose the optional fields.
+        client = _reload_app()
+        cm, _ = _mock_backend({
+            "response": "ok",
+            "awaiting_user_input": "yes",   # wrong type
+            "suggestion": 42,                # wrong type
+        })
+        with cm:
+            res = client.post("/chat", json={"text": "hi", "session_id": GOOD_SID})
+        assert res.status_code == 200
+        data = res.json()
+        assert data == {"response": "ok"}
+
+
+# -----------------------------------------------------------------------------
+# /chat/stream — SSE streaming
+# -----------------------------------------------------------------------------
+
+
+def _mock_stream_backend(
+    *, sse_frames: list[bytes] | None = None,
+    json_body: dict | None = None,
+    status_code: int = 200,
+    raise_error: bool = False,
+):
+    """Patch httpx.AsyncClient so /chat/stream's outbound
+    `client.stream(...)` is intercepted.
+
+    Pass either `sse_frames` (the server treats the response as SSE) or
+    `json_body` (the server treats the response as legacy JSON).
+    """
+    captured: dict = {}
+    if sse_frames is not None:
+        headers = {"content-type": "text/event-stream"}
+    elif json_body is not None:
+        headers = {"content-type": "application/json"}
+    else:
+        headers = {"content-type": "application/json"}
+        json_body = {"response": "ok"}
+
+    class _FakeResponse:
+        def __init__(self):
+            self.status_code = status_code
+            self.headers = headers
+
+        async def aiter_bytes(self):
+            for f in (sse_frames or []):
+                yield f
+
+        async def aread(self):
+            return json.dumps(json_body).encode("utf-8")
+
+    class _FakeStreamCM:
+        def __init__(self, *a, **kw):
+            captured["url"] = kw.get("url") or (a[1] if len(a) > 1 else None)
+            captured["json"] = kw.get("json")
+            captured["headers"] = kw.get("headers")
+
+        async def __aenter__(self):
+            if raise_error:
+                raise httpx.RequestError("connection failed")
+            return _FakeResponse()
+
+        async def __aexit__(self, *exc):
+            return None
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+
+    def stream(method, url, **kw):
+        return _FakeStreamCM(method, url=url, **kw)
+
+    mock_client.stream = stream
+    return patch("httpx.AsyncClient", return_value=mock_client), captured
+
+
+def _parse_sse(raw: bytes) -> list[tuple[str, dict]]:
+    """Tiny SSE parser for tests. Returns [(event_name, data_dict), ...]."""
+    out: list[tuple[str, dict]] = []
+    for frame in raw.split(b"\n\n"):
+        if not frame.strip():
+            continue
+        event = "message"
+        data_lines: list[str] = []
+        for line in frame.split(b"\n"):
+            if line.startswith(b"event:"):
+                event = line[6:].strip().decode()
+            elif line.startswith(b"data:"):
+                data_lines.append(line[5:].strip().decode())
+        data = "\n".join(data_lines)
+        try:
+            parsed = json.loads(data) if data else {}
+        except ValueError:
+            parsed = {"_raw": data}
+        out.append((event, parsed))
+    return out
+
+
+class TestChatStreamSSEPassthrough:
+    def test_backend_sse_proxied_to_pwa(self):
+        client = _reload_app()
+        frames = [
+            b'event: chunk\ndata: {"delta":"Hel"}\n\n',
+            b'event: chunk\ndata: {"delta":"lo"}\n\n',
+            b'event: final\ndata: {"response":"Hello"}\n\n',
+        ]
+        cm, _ = _mock_stream_backend(sse_frames=frames)
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        assert res.status_code == 200
+        assert res.headers["content-type"].startswith("text/event-stream")
+        events = _parse_sse(res.content)
+        names = [e for e, _ in events]
+        assert names == ["chunk", "chunk", "final"]
+        assert events[0][1] == {"delta": "Hel"}
+        assert events[2][1]["response"] == "Hello"
+
+    def test_outbound_accept_header_set(self):
+        client = _reload_app()
+        frames = [b'event: final\ndata: {"response":"x"}\n\n']
+        cm, captured = _mock_stream_backend(sse_frames=frames)
+        with cm:
+            client.post("/chat/stream", json={"text": "hi", "session_id": GOOD_SID})
+        assert captured["headers"]["Accept"] == "text/event-stream"
+
+    def test_backend_truncated_emits_error(self):
+        # SSE stream closes without a `final` → server synthesises an
+        # error event so the PWA can finalise its state machine.
+        client = _reload_app()
+        frames = [b'event: chunk\ndata: {"delta":"part"}\n\n']
+        cm, _ = _mock_stream_backend(sse_frames=frames)
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        events = _parse_sse(res.content)
+        assert events[-1][0] == "error"
+        assert events[-1][1]["code"] == "stream_truncated"
+
+
+class TestChatStreamJSONFallback:
+    """Backends that don't support SSE still respond with the legacy
+    JSON shape. VoxGate adapts it to a single chunk+final event so the
+    PWA's streaming codepath stays uniform."""
+
+    def test_json_backend_adapted_to_chunk_plus_final(self):
+        client = _reload_app()
+        cm, _ = _mock_stream_backend(json_body={"response": "Hello there"})
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        assert res.status_code == 200
+        events = _parse_sse(res.content)
+        names = [e for e, _ in events]
+        assert names == ["chunk", "final"]
+        assert events[0][1] == {"delta": "Hello there"}
+        assert events[1][1]["response"] == "Hello there"
+
+    def test_json_backend_follow_up_hint_propagated(self):
+        client = _reload_app()
+        cm, _ = _mock_stream_backend(json_body={
+            "response": "Welche Wurst?",
+            "awaiting_user_input": True,
+            "suggestion": "z.B. Cervelat",
+        })
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        events = _parse_sse(res.content)
+        final = [d for e, d in events if e == "final"][0]
+        assert final["awaiting_user_input"] is True
+        assert final["suggestion"] == "z.B. Cervelat"
+
+    def test_json_backend_bad_shape_emits_error(self):
+        client = _reload_app()
+        cm, _ = _mock_stream_backend(json_body={"not_response": "x"})
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        events = _parse_sse(res.content)
+        assert events[-1][0] == "error"
+        assert events[-1][1]["code"] == "backend_bad_shape"
+
+    def test_backend_5xx_emits_error(self):
+        client = _reload_app()
+        cm, _ = _mock_stream_backend(
+            json_body={"response": "x"}, status_code=500,
+        )
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        events = _parse_sse(res.content)
+        assert events[-1][0] == "error"
+        assert events[-1][1]["code"] == "backend_error"
+
+    def test_backend_unreachable_emits_error(self):
+        client = _reload_app()
+        cm, _ = _mock_stream_backend(raise_error=True)
+        with cm:
+            res = client.post(
+                "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+            )
+        events = _parse_sse(res.content)
+        assert events[-1][0] == "error"
+        assert events[-1][1]["code"] == "backend_unreachable"
+
+
+class TestChatStreamAuth:
+    def test_requires_session(self):
+        client = _reload_app(login=False)
+        res = client.post(
+            "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+        )
+        assert res.status_code == 401
+
+    def test_requires_csrf(self):
+        client = _reload_app()
+        client.headers.pop("X-CSRF-Token", None)
+        res = client.post(
+            "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+        )
+        assert res.status_code == 403
+
+    def test_disabled_returns_404(self, monkeypatch):
+        monkeypatch.setenv("STREAMING_ENABLED", "0")
+        client = _reload_app()
+        res = client.post(
+            "/chat/stream", json={"text": "hi", "session_id": GOOD_SID}
+        )
+        assert res.status_code == 404
+
+
+# -----------------------------------------------------------------------------
+# /chat/cancel
+# -----------------------------------------------------------------------------
+
+
+class TestChatCancel:
+    def test_cancel_unknown_session_is_idempotent(self):
+        client = _reload_app()
+        res = client.post(
+            "/chat/cancel", json={"session_id": GOOD_SID}
+        )
+        assert res.status_code == 200
+        assert res.json() == {"cancelled": False}
+
+    def test_cancel_in_flight_returns_true(self):
+        import server
+
+        client = _reload_app()
+        # The endpoint only needs the registry entry's `.done()` and
+        # `.cancel()` to behave like a Task — we don't need a real
+        # event loop to validate the cancellation API contract.
+        fake_task = MagicMock()
+        fake_task.done.return_value = False
+        server._active_streams[GOOD_SID] = fake_task
+        try:
+            res = client.post("/chat/cancel", json={"session_id": GOOD_SID})
+            assert res.status_code == 200
+            assert res.json() == {"cancelled": True}
+            fake_task.cancel.assert_called_once()
+            # Registry must be drained — the next turn for this session
+            # starts with a clean slate.
+            assert GOOD_SID not in server._active_streams
+        finally:
+            server._active_streams.pop(GOOD_SID, None)
+
+    def test_requires_session(self):
+        client = _reload_app(login=False)
+        res = client.post("/chat/cancel", json={"session_id": GOOD_SID})
+        assert res.status_code == 401
+
+    def test_requires_csrf(self):
+        client = _reload_app()
+        client.headers.pop("X-CSRF-Token", None)
+        res = client.post("/chat/cancel", json={"session_id": GOOD_SID})
+        assert res.status_code == 403
+
+    def test_rejects_malformed_session_id(self):
+        client = _reload_app()
+        res = client.post("/chat/cancel", json={"session_id": "abc"})
+        assert res.status_code == 422
+
+
+# -----------------------------------------------------------------------------
+# /config — streaming flag
+# -----------------------------------------------------------------------------
+
+
+class TestConfigStreamingFlag:
+    def test_streaming_default_true(self):
+        client = _reload_app(login=False)
+        assert client.get("/config").json()["streaming"] is True
+
+    def test_streaming_can_be_disabled(self, monkeypatch):
+        monkeypatch.setenv("STREAMING_ENABLED", "0")
+        client = _reload_app(login=False)
+        assert client.get("/config").json()["streaming"] is False

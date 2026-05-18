@@ -612,6 +612,51 @@
     }
     .mic-btn.recording .mic-icon { animation: pulse 1.2s ease infinite; }
 
+    /* Streaming state: same pulse as recording so the user perceives
+       "something is happening", but in a different accent so it can be
+       told apart from active recording. */
+    .mic-btn.streaming {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .mic-btn.streaming .mic-icon { animation: pulse 1.6s ease infinite; }
+
+    /* Pre-send warning: ~500 ms before auto-send fires, the mic icon
+       pulses faster and the button border tint deepens so the user
+       sees "speak now or the send goes off in a moment". Speaking
+       resets the timer, which removes this class. */
+    .mic-btn.about-to-send {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .mic-btn.about-to-send .mic-icon { animation: pulse 0.4s ease infinite; }
+
+    /* Auto-send delay segment is grayed out when the auto-send toggle
+       is off — the buttons stay visible (so users see the option
+       exists) but can't be operated. */
+    .menu-segment[aria-disabled="true"] {
+      opacity: 0.45;
+    }
+    .menu-segment[aria-disabled="true"] .menu-segment-btn {
+      cursor: not-allowed;
+    }
+
+    /* Backend signalled a follow-up question (awaiting_user_input).
+       A small '?' badge on the assistant bubble tells the user this
+       was a clarifying question, not a final answer. */
+    .message.assistant.awaiting-input .message-bubble {
+      border-left: 2px solid var(--accent);
+      padding-left: 10px;
+    }
+    .message.assistant.awaiting-input .message-bubble::before {
+      content: '?';
+      color: var(--accent);
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
     .mic-icon {
       width: 20px;
       height: 20px;
