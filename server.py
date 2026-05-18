@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 import os
 import pathlib
@@ -9,7 +11,7 @@ from collections import deque
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -67,6 +69,21 @@ MAX_ATTACHMENTS_PER_REQUEST = int(
 )
 TRUST_PROXY_HEADERS = os.environ.get("TRUST_PROXY_HEADERS", "0") == "1"
 
+# Streaming sub-contract (see docs/integration.md). Default on — the PWA
+# falls back to /chat for backends that reply with plain JSON, so flipping
+# this off is only useful for operators who explicitly want to disable
+# the new endpoint entirely.
+STREAMING_ENABLED = os.environ.get("STREAMING_ENABLED", "1") == "1"
+# Optional cancel-hook: if set, /chat/cancel additionally fires
+# DELETE <BACKEND_CANCEL_URL> after dropping the outbound stream.
+# The literal token {session_id} is substituted. Most backends only need
+# the TCP close, so this is opt-in.
+BACKEND_CANCEL_URL = os.environ.get("BACKEND_CANCEL_URL", "").strip()
+# Per-byte idle timeout for the streaming proxy. Total /chat/stream
+# duration is unbounded (LLM answers can take minutes); we time out only
+# when the backend goes silent for this many seconds.
+STREAM_IDLE_TIMEOUT = int(os.environ.get("STREAM_IDLE_TIMEOUT", "60"))
+
 # Auth config
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 ALLOWED_EMAILS_RAW = os.environ.get("ALLOWED_EMAILS", "")
@@ -120,6 +137,11 @@ if not TARGET_URL:
 
 _rate_buckets: dict[str, deque] = {}
 _auth_login_buckets: dict[str, deque] = {}
+# session_id → asyncio.Task of the in-flight /chat/stream forward. Used
+# by /chat/cancel to abort the outbound httpx connection. Single-worker
+# Uvicorn assumed (see Dockerfile); multi-worker deployments would need
+# external state (Redis/etc.) — see docs/setup.md.
+_active_streams: dict[str, "asyncio.Task[None]"] = {}
 
 
 def _client_ip(request: Request) -> str:
@@ -182,7 +204,9 @@ async def security_headers(request: Request, call_next):
 
 @app.middleware("http")
 async def rate_limit(request: Request, call_next):
-    if request.url.path in ("/chat", "/selftest") and request.method == "POST":
+    if request.url.path in (
+        "/chat", "/chat/stream", "/chat/cancel", "/selftest",
+    ) and request.method == "POST":
         ip = _client_ip(request)
         now = time.time()
         bucket = _rate_buckets.setdefault(ip, deque())
@@ -338,7 +362,12 @@ async def get_config():
         "maxLength": MAX_PROMPT_LENGTH,
         "googleClientId": GOOGLE_CLIENT_ID,
         "providers": sorted(PROVIDERS.keys()),
+        "streaming": STREAMING_ENABLED,
     }
+
+
+class CancelRequest(BaseModel):
+    session_id: str = Field(..., pattern=r"^[A-Za-z0-9_-]{8,128}$")
 
 
 @app.post("/chat")
@@ -425,7 +454,317 @@ async def chat(
         logger.warning("backend_bad_shape ip=%s shape=%s", ip, shape)
         raise HTTPException(status_code=502, detail="Backend response did not match contract")
 
-    return {"response": data["response"]}
+    out: dict = {"response": data["response"]}
+    # Optional follow-up-hint fields (additive contract extension). Pass
+    # through only when shape-correct; ignore everything else silently —
+    # backends are free to attach diagnostic keys that the PWA shouldn't see.
+    if isinstance(data.get("awaiting_user_input"), bool):
+        out["awaiting_user_input"] = data["awaiting_user_input"]
+    if isinstance(data.get("suggestion"), str):
+        out["suggestion"] = data["suggestion"]
+    return out
+
+
+def _sse_event(event: str, data: dict) -> bytes:
+    """Encode a single SSE frame. Keep payload on one line — multi-line
+    `data:` is valid SSE but the PWA parser expects one JSON object per
+    event for simplicity."""
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return f"event: {event}\ndata: {payload}\n\n".encode("utf-8")
+
+
+async def _stream_from_backend(
+    payload: dict, headers: dict, session_id: str, ip: str,
+):
+    """Async generator yielding SSE bytes for /chat/stream.
+
+    Two backend modes:
+      1) text/event-stream — bytes are forwarded line-buffered, then a
+         terminal `final` event is synthesised if the backend forgot one
+         (defensive; spec says backends should send it).
+      2) application/json — legacy `{"response": ...}` is adapted to a
+         single chunk + final event so the PWA codepath stays uniform.
+    """
+    sid_short = session_id[:8]
+    delta_count = 0
+    sent_final = False
+    accumulated = ""
+    t0 = time.perf_counter()
+
+    timeout = httpx.Timeout(connect=10.0, read=STREAM_IDLE_TIMEOUT, write=10.0, pool=10.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream("POST", TARGET_URL, json=payload, headers=headers) as res:
+                if res.status_code >= 400:
+                    logger.warning(
+                        "stream_backend_error ip=%s session=%s status=%d",
+                        ip, sid_short, res.status_code,
+                    )
+                    yield _sse_event("error", {
+                        "code": "backend_error",
+                        "message": f"Backend returned HTTP {res.status_code}",
+                    })
+                    return
+
+                ctype = res.headers.get("content-type", "").lower()
+
+                if ctype.startswith("text/event-stream"):
+                    # Pass-through SSE. We re-frame line-buffered so the
+                    # PWA sees boundary-aligned events even if the backend
+                    # writes mid-line, and parse final/chunk to know when
+                    # to terminate.
+                    buffer = b""
+                    async for chunk in res.aiter_bytes():
+                        buffer += chunk
+                        while b"\n\n" in buffer:
+                            frame, _, buffer = buffer.partition(b"\n\n")
+                            if not frame.strip():
+                                continue
+                            # Inspect the event name to count deltas /
+                            # detect the terminal final without parsing
+                            # the JSON payload defensively.
+                            evt_name = ""
+                            for line in frame.split(b"\n"):
+                                if line.startswith(b"event:"):
+                                    evt_name = line[6:].strip().decode("ascii", "replace")
+                                    break
+                            if evt_name == "chunk":
+                                delta_count += 1
+                            elif evt_name == "final":
+                                sent_final = True
+                            yield frame + b"\n\n"
+                            if sent_final:
+                                return
+                    # Connection ended without a `final`. Emit one so the
+                    # PWA reliably transitions out of "streaming" state.
+                    if not sent_final:
+                        logger.warning(
+                            "stream_no_final ip=%s session=%s deltas=%d",
+                            ip, sid_short, delta_count,
+                        )
+                        yield _sse_event("error", {
+                            "code": "stream_truncated",
+                            "message": "Backend closed the stream without a final event",
+                        })
+                    return
+
+                # Legacy JSON backend — read the full body and adapt.
+                body = await res.aread()
+                try:
+                    data = json.loads(body.decode("utf-8"))
+                except (ValueError, UnicodeDecodeError):
+                    logger.warning("stream_backend_non_json ip=%s session=%s", ip, sid_short)
+                    yield _sse_event("error", {
+                        "code": "backend_non_json",
+                        "message": "Backend response was not JSON",
+                    })
+                    return
+                if not isinstance(data, dict) or not isinstance(data.get("response"), str):
+                    shape = list(data) if isinstance(data, dict) else type(data).__name__
+                    logger.warning(
+                        "stream_backend_bad_shape ip=%s session=%s shape=%s",
+                        ip, sid_short, shape,
+                    )
+                    yield _sse_event("error", {
+                        "code": "backend_bad_shape",
+                        "message": "Backend response did not match contract",
+                    })
+                    return
+                text = data["response"]
+                accumulated = text
+                yield _sse_event("chunk", {"delta": text})
+                final_payload: dict = {"response": text}
+                if isinstance(data.get("awaiting_user_input"), bool):
+                    final_payload["awaiting_user_input"] = data["awaiting_user_input"]
+                if isinstance(data.get("suggestion"), str):
+                    final_payload["suggestion"] = data["suggestion"]
+                yield _sse_event("final", final_payload)
+                sent_final = True
+    except asyncio.CancelledError:
+        logger.info(
+            "[%s] stream_cancelled session=%s deltas=%d ms=%d",
+            INSTANCE_NAME, sid_short, delta_count,
+            int((time.perf_counter() - t0) * 1000),
+        )
+        # Best-effort terminal frame — the client may have already gone
+        # away (that's typically why we got cancelled), but if it hasn't,
+        # this lets the PWA finalise its state machine.
+        try:
+            yield _sse_event("error", {"code": "cancelled", "message": "Cancelled by user"})
+        except Exception:
+            pass
+        raise
+    except httpx.RequestError as exc:
+        logger.warning(
+            "stream_backend_unreachable ip=%s session=%s err=%s",
+            ip, sid_short, type(exc).__name__,
+        )
+        yield _sse_event("error", {
+            "code": "backend_unreachable",
+            "message": "Backend unreachable",
+        })
+    finally:
+        elapsed = int((time.perf_counter() - t0) * 1000)
+        logger.info(
+            "[%s] stream_done session=%s deltas=%d final=%s ms=%d",
+            INSTANCE_NAME, sid_short, delta_count, sent_final, elapsed,
+        )
+        _active_streams.pop(session_id, None)
+        # Avoid a "unused" warning when accumulated stays empty in the SSE path.
+        _ = accumulated
+
+
+@app.post("/chat/stream")
+async def chat_stream(
+    req: ChatRequest,
+    request: Request,
+    session: SessionData = Depends(verify_session),
+):
+    """Streaming variant of /chat. Same auth, same request body, but the
+    response is `text/event-stream` (see docs/integration.md).
+
+    Backend negotiation: VoxGate adds `Accept: text/event-stream` to the
+    outbound POST. Backends that reply with that content-type are proxied
+    through verbatim (line-buffered); backends that still reply with the
+    legacy `{"response": "..."}` JSON are adapted to a single chunk+final
+    SSE event so the PWA codepath stays uniform.
+    """
+    if not STREAMING_ENABLED:
+        raise HTTPException(status_code=404, detail="Streaming disabled on this instance")
+    if not TARGET_URL:
+        raise HTTPException(status_code=503, detail="No backend configured")
+    if not req.text and not req.attachments:
+        raise HTTPException(
+            status_code=422, detail="Either text or at least one attachment is required",
+        )
+
+    ip = _client_ip(request)
+    sid_short = req.session_id[:8]
+    logger.info(
+        "[%s] chat_stream ip=%s user=%s session=%s text_len=%d attachments=%d",
+        INSTANCE_NAME, ip, session.email, sid_short, len(req.text), len(req.attachments),
+    )
+
+    payload = {
+        "user": req.text,
+        "user_email": session.email,
+        "session_id": req.session_id,
+        "metadata": {"lang": req.lang or SPEECH_LANG, "instance": INSTANCE_NAME},
+    }
+    if req.attachments:
+        payload["attachments"] = [a.model_dump() for a in req.attachments]
+    headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+    if TARGET_TOKEN:
+        headers["Authorization"] = f"Bearer {TARGET_TOKEN}"
+
+    # If the same session already has an in-flight stream, cancel it
+    # before starting the new one. This mirrors the PWA's "auto-cancel
+    # on new prompt" UX and keeps the registry's invariant (one stream
+    # per session at most).
+    prev = _active_streams.pop(req.session_id, None)
+    if prev and not prev.done():
+        prev.cancel()
+
+    # Producer task owns the outbound httpx stream and is the cancel
+    # target. It pushes frames into a queue; the StreamingResponse body
+    # iterator drains the queue. This indirection is necessary because
+    # the request handler returns *before* Starlette starts iterating
+    # the response body — so we cannot track "the streaming task" via
+    # asyncio.current_task() here.
+    queue: asyncio.Queue = asyncio.Queue()
+    _SENTINEL = object()
+
+    async def _producer():
+        try:
+            async for frame in _stream_from_backend(payload, headers, req.session_id, ip):
+                await queue.put(frame)
+        except asyncio.CancelledError:
+            try:
+                queue.put_nowait(_sse_event("error", {
+                    "code": "cancelled", "message": "Cancelled by user",
+                }))
+            except asyncio.QueueFull:
+                pass
+            raise
+        finally:
+            try:
+                queue.put_nowait(_SENTINEL)
+            except asyncio.QueueFull:
+                pass
+
+    producer_task = asyncio.create_task(_producer())
+    _active_streams[req.session_id] = producer_task
+
+    async def _drain():
+        try:
+            while True:
+                frame = await queue.get()
+                if frame is _SENTINEL:
+                    return
+                yield frame
+        finally:
+            # Client disconnect lands here. Cancel the producer so the
+            # outbound httpx stream is torn down and the registry slot
+            # is freed for the next turn.
+            if not producer_task.done():
+                producer_task.cancel()
+            _active_streams.pop(req.session_id, None)
+
+    return StreamingResponse(
+        _drain(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",  # disable nginx/proxy buffering
+        },
+    )
+
+
+@app.post("/chat/cancel")
+async def chat_cancel(
+    req: CancelRequest,
+    request: Request,
+    session: SessionData = Depends(verify_session),
+):
+    """Cancel an in-flight /chat/stream for the given session.
+
+    Primary mechanism: cancel the asyncio task carrying the outbound
+    httpx stream — the backend then sees a clean TCP close. Optional
+    secondary: if `BACKEND_CANCEL_URL` is configured, fire a fire-and-
+    forget `DELETE` against it so backends with explicit cancel routes
+    can clean up. Idempotent: cancelling an unknown session returns
+    `{"cancelled": false}` with HTTP 200.
+    """
+    ip = _client_ip(request)
+    sid_short = req.session_id[:8]
+    task = _active_streams.get(req.session_id)
+    cancelled = False
+    if task is not None and not task.done():
+        task.cancel()
+        cancelled = True
+    _active_streams.pop(req.session_id, None)
+
+    if cancelled and BACKEND_CANCEL_URL:
+        url = BACKEND_CANCEL_URL.replace("{session_id}", req.session_id)
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                hdrs = {}
+                if TARGET_TOKEN:
+                    hdrs["Authorization"] = f"Bearer {TARGET_TOKEN}"
+                await client.delete(url, headers=hdrs)
+        except httpx.RequestError as exc:
+            # Best-effort; the TCP close is already enough for the
+            # primary cancel path. Log so operators see hook breakage.
+            logger.warning(
+                "backend_cancel_hook_failed ip=%s session=%s err=%s",
+                ip, sid_short, type(exc).__name__,
+            )
+
+    logger.info(
+        "[%s] chat_cancel ip=%s user=%s session=%s cancelled=%s",
+        INSTANCE_NAME, ip, session.email, sid_short, cancelled,
+    )
+    return {"cancelled": cancelled}
 
 
 @app.post("/selftest")

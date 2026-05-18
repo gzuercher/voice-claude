@@ -18,6 +18,57 @@ last upgrade, if any.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-18
+
+### Added
+- **Auto-send on silence (PWA, opt-in).** Two new menu items —
+  *Automatisch senden* (toggle) and *Pause vor Senden* (Schnell /
+  Normal / Geduldig = 1.2 / 1.8 / 2.5 s). When enabled, the
+  recording→review→send flow collapses to recording→silence→send: the
+  mic button starts continuous Web Speech, and after the chosen
+  silence threshold the locked transcript is sent automatically. A
+  500 ms pre-send pulse on the mic icon warns the user that a send is
+  about to fire (speaking resets the timer). Default off — the
+  classic three-tap flow is fully preserved for anyone who doesn't
+  flip the toggle. State persisted in `localStorage`
+  (`voxAutoSend`, `voxAutoSendDelay`).
+- **SSE streaming (`POST /chat/stream`).** Additive endpoint alongside
+  `/chat`. Same auth, same request body, response is `text/event-stream`
+  with `chunk` / `tool` / `final` / `error` events. Backends that reply
+  with the legacy `application/json` `{"response": "..."}` shape are
+  adapted to a single chunk+final event so the PWA codepath stays
+  uniform — backends can adopt streaming at their own pace. See
+  `docs/integration.md` § Streaming sub-contract.
+- **Cancel (`POST /chat/cancel`).** User-initiated interrupt for an
+  in-flight streamed turn. Body: `{session_id}`. Idempotent. Mic-button
+  doubles as Stop while streaming. PWA also auto-cancels if a new
+  prompt is submitted while a previous reply is still streaming
+  ("one turn at a time"). Optional `BACKEND_CANCEL_URL` env adds a
+  fire-and-forget `DELETE` hook for backends with explicit cleanup
+  routes — by default only the TCP close is used.
+- **Follow-up-hint contract fields.** Backends may set
+  `awaiting_user_input: true` and optionally `suggestion: "<text>"` in
+  the response (both `/chat` and the `final` SSE event). The PWA then
+  keeps the text input focused, sets `suggestion` as placeholder, and
+  marks the bubble with a `?` so the user sees this is a clarifying
+  question, not a final answer.
+- **`pwa/chat.js`.** Extracted all chat-network code (`/chat`,
+  `/chat/stream`, `/chat/cancel`, SSE frame parser) into its own
+  module. `pwa/app.js` keeps UI / render / Web-Speech concerns.
+- **Single-source-of-truth integration doc.** Folded the runnable
+  backend examples (FastAPI minimal + streaming, Anthropic streaming
+  adapter, Express, bash stub) into `docs/integration.md` under a new
+  `## Reference backend implementations` section. `docs/backends.md`
+  removed — backend integrators now have everything at the live
+  `GET /integration` URL, no repo checkout needed.
+
+### Operator action required
+- None — all three additions are backward compatible. To force-disable
+  streaming on a specific instance set `STREAMING_ENABLED=0`. To wire
+  an optional backend cancel hook set
+  `BACKEND_CANCEL_URL=http://backend/cancel/{session_id}` (literal
+  `{session_id}` is substituted).
+
 ## [0.2.0] - 2026-05-08
 
 ### Added
@@ -71,7 +122,8 @@ last upgrade, if any.
 - **VoxGate is a pure voice gateway.** The previous direct-Anthropic
   `/claude` endpoint is removed; the only chat path is `POST /chat`
   → `TARGET_URL`. Voice-to-Claude is achieved by running the small
-  adapter in `docs/backends.md` behind `TARGET_URL`.
+  adapter in `docs/integration.md` (Reference backend implementations)
+  behind `TARGET_URL`.
 
 ### Operator action required
 - **None for this range** — the contract change to add `attachments`

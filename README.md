@@ -146,9 +146,8 @@ Access, Tailscale-only access) is independently possible — see
 The rest is reference material for developers and clients calling the
 HTTP API. For installation/operation see [`docs/setup.md`](docs/setup.md).
 For the security checklist see [`docs/security.md`](docs/security.md).
-For the backend JSON contract see
-[`docs/integration.md`](docs/integration.md). For backend
-examples see [`docs/backends.md`](docs/backends.md). For contributing
+For the backend JSON contract (including runnable backend examples)
+see [`docs/integration.md`](docs/integration.md). For contributing
 see [`docs/contributing.md`](docs/contributing.md). For where the
 project might go next see [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -198,8 +197,7 @@ voxgate/
 │   ├── setup.md            # Installation and operation
 │   ├── security.md         # Operator security checklist
 │   ├── contributing.md     # Development workflow
-│   ├── integration.md      # HTTP surface + /chat → TARGET_URL contract
-│   ├── backends.md         # Runnable example backends (FastAPI, Express, …)
+│   ├── integration.md      # HTTP surface + /chat → TARGET_URL contract + backend examples
 │   ├── roadmap.md          # Future-development ideas (incl. "Shipped")
 │   └── lessons.md          # Architecture-decision log (mistakes + fixes)
 ├── .github/                # CI workflow + PR/issue templates
